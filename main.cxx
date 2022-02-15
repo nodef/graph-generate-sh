@@ -150,8 +150,42 @@ void doTransformTo(G& a, GraphTransform o) {
 
 template <class G>
 auto doTransform(const G& x, GraphTransform o) {
-  auto a = duplicate(x); doTransformTo(a, o);
+  auto a = copy(x); doTransformTo(a, o);
   return a;
+}
+
+
+
+
+// GRAPH-DELTA
+// -----------
+
+struct GraphDelta {
+  vector<pair<int, int>> deletions;
+  vector<pair<int, int>> insertions;
+};
+
+
+template <class G>
+auto createMixedGraphDelta(const G& x, int del, int ins) {
+  GraphDelta a;
+  random_device dev;
+  default_random_engine rnd(dev());
+  for (int i=0; i<del; ++i)
+    a.deletions.push_back(suggestRemoveRandomEdgeByDegree(x, rnd));
+  for (int i=0; i<ins; ++i)
+    a.insertions.push_back(suggestAddRandomEdgeByDegree(x, rnd, x.span()));
+  return a;
+}
+
+
+string toString(const GraphDelta& x) {
+  string s = ""; stringstream a(s);
+  for (auto [u, v] : x.deletions)
+    a << "- " << u << " " << v << "\n";
+  for (auto [u, v] : x.insertions)
+    a << "+ " << u << " " << v << "\n";
+  return a.str();
 }
 
 
@@ -162,11 +196,13 @@ auto doTransform(const G& x, GraphTransform o) {
 
 void runMtx(const Options& o) {
   printf("Loading graph %s ...\n", o.file.c_str());
-  auto x  = readMtxOutDiGraph(o.file.c_str()); println(x);
-  doTransformTo(x, o.transform);
+  auto x  = readMtx(o.file.c_str()); println(x);
+  selfLoopTo(x, [&](int u) { return isDeadEnd(x, u); });
+  print(x); printf(" (selfLoopDeadEnds)\n");
   auto xt = transposeWithDegree(x);
   print(xt); printf(" (transposeWithDegree)\n");
-  showAll("", x, xt, o);
+  GraphDelta d = createMixedGraphDelta(x, o.samples/2, o.samples/2);
+  printf("%s", toString(d).c_str());
 }
 
 
@@ -184,7 +220,7 @@ void runSnap(const Options& o) {
   DiGraph<> xo;
   stringstream s(data);
   for (int i=0;; ++i) {
-    if (!readSnapTemporalTo(xo, s, jump)) break; println(xo);
+    if (!readSnapTemporal(xo, s, jump)) break; println(xo);
     auto x  = doTransform(xo, o.transform);
     auto xt = transposeWithDegree(x);
     print(xt); printf(" (transposeWithDegree)\n");
