@@ -3,34 +3,37 @@
 #include <iterator>
 #include <algorithm>
 #include <random>
+#include <utility>
 #include "_main.hxx"
 
 using std::vector;
 using std::uniform_real_distribution;
+using std::make_pair;
 using std::transform;
 using std::back_inserter;
-
 
 
 
 // EDGES
 // -----
 
-template <class G, class K, class F, class D>
-auto edges(const G& x, K u, F fm, D fp) {
-  vector<K> a;
-  copyAppend(x.edgeKeys(u), a);
+template <class G, class F, class D>
+auto edges(const G& x, int u, F fm, D fp) {
+  vector<int> a;
+  append(a, x.edges(u));
   auto ie = a.end(), ib = a.begin();
   fp(ib, ie); transform(ib, ie, ib, fm);
   return a;
 }
-template <class G, class K, class F>
-inline auto edges(const G& x, K u, F fm) {
+
+template <class G, class F>
+auto edges(const G& x, int u, F fm) {
   return edges(x, u, fm, [](auto ib, auto ie) {});
 }
-template <class G, class K>
-inline auto edges(const G& x, K u) {
-  return edges(x, u, [](auto v) { return v; });
+
+template <class G>
+auto edges(const G& x, int u) {
+  return edges(x, u, [](int v) { return v; });
 }
 
 
@@ -39,15 +42,16 @@ inline auto edges(const G& x, K u) {
 // EDGE
 // ----
 
-template <class G, class K, class F>
-auto edge(const G& x, K u, F fm) {
-  for (auto v : x.edgeKeys(u))
+template <class G, class F>
+auto edge(const G& x, int u, F fm) {
+  for (int v : x.edges(u))
     return fm(v);
-  return K(-1);
+  return -1;
 }
-template <class G, class K>
-inline auto edge(const G& x, K u) {
-  return edge(x, u, [](auto v) { return v; });
+
+template <class G>
+auto edge(const G& x, int u) {
+  return edge(x, u, [](int v) { return v; });
 }
 
 
@@ -58,27 +62,30 @@ inline auto edge(const G& x, K u) {
 
 template <class G, class J, class F, class D>
 auto edgeData(const G& x, const J& ks, F fm, D fp) {
-  using K = typename G::key_type;
   using E = decltype(fm(0, 0));
-  vector<E> a; vector<K> b;
-  for (auto u : ks) {
-    copyWrite(x.edgeKeys(u), b);
+  vector<E> a;
+  vector<int> b;
+  for (int u : ks) {
+    b.clear(); append(b, x.edges(u));
     auto ie = b.end(), ib = b.begin();
-    fp(ib, ie); transform(ib, ie, back_inserter(a), [&](auto v) { return fm(u, v); });
+    fp(ib, ie); transform(ib, ie, back_inserter(a), [&](int v) { return fm(u, v); });
   }
   return a;
 }
+
 template <class G, class J, class F>
-inline auto edgeData(const G& x, const J& ks, F fm) {
+auto edgeData(const G& x, const J& ks, F fm) {
   return edgeData(x, ks, fm, [](auto ib, auto ie) {});
 }
+
 template <class G, class J>
-inline auto edgeData(const G& x, const J& ks) {
-  return edgeData(x, ks, [&](auto u, auto v) { return x.edgeValue(u, v); });
+auto edgeData(const G& x, const J& ks) {
+  return edgeData(x, ks, [&](int u, int v) { return x.edgeData(u, v); });
 }
+
 template <class G>
-inline auto edgeData(const G& x) {
-  return edgeData(x, x.vertexKeys());
+auto edgeData(const G& x) {
+  return edgeData(x, x.vertices());
 }
 
 
@@ -87,16 +94,16 @@ inline auto edgeData(const G& x) {
 // EDGES-VISITED
 // -------------
 
-template <class G, class K>
-bool allEdgesVisited(const G& x, K u, const vector<bool>& vis) {
-  for (auto v : x.edgeKeys(u))
+template <class G>
+bool allEdgesVisited(const G& x, int u, const vector<bool>& vis) {
+  for (int v : x.edges(u))
     if (!vis[v]) return false;
   return true;
 }
 
-template <class G, class K>
-bool someEdgesVisited(const G& x, K u, const vector<bool>& vis) {
-  for (auto v : x.edgeKeys(u))
+template <class G>
+bool someEdgesVisited(const G& x, int u, const vector<bool>& vis) {
+  for (int v : x.edges(u))
     if (vis[v]) return true;
   return false;
 }
@@ -107,31 +114,48 @@ bool someEdgesVisited(const G& x, K u, const vector<bool>& vis) {
 // ADD-RANDOM-EDGE
 // ---------------
 
-template <class G, class K, class R>
-void addRandomEdge(G& a, R& rnd, K span) {
-  uniform_real_distribution<> dis(0.0, 1.0);
-  K u = K(dis(rnd) * span);
-  K v = K(dis(rnd) * span);
+template <class G>
+inline bool addEdge(G& a, const pair<int, int>& uv) {
+  auto [u, v] = uv;
+  if (u < 0 || v < 0) return false;
   a.addEdge(u, v);
+  return true;
 }
 
 
-template <class G, class K, class R>
-void addRandomEdgeByDegree(G& a, R& rnd, K span) {
+template <class G, class R>
+auto suggestAddRandomEdge(const G& x, R& rnd, int span) {
   uniform_real_distribution<> dis(0.0, 1.0);
-  double deg = a.size() / a.span();
-  K un = K(dis(rnd) * deg * span);
-  K vn = K(dis(rnd) * deg * span);
-  K u = -1, v = -1, n = 0;
-  for (K w : a.vertexKeys()) {
-    if (un<0 && un > n+a.degree(w)) u = w;
-    if (vn<0 && vn > n+a.degree(w)) v = w;
+  int u = int(dis(rnd) * span);
+  int v = int(dis(rnd) * span);
+  return make_pair(u, v);
+}
+template <class G, class R>
+inline bool addRandomEdge(G& a, R& rnd, int span) {
+  return addEdge(a, suggestAddRandomEdge(a, rnd, span));
+}
+
+
+template <class G, class R>
+auto suggestAddRandomEdgeByDegree(const G& x, R& rnd, int span) {
+  uniform_real_distribution<> dis(0.0, 1.0);
+  double deg = x.size() / x.span();
+  int un = int(dis(rnd) * deg * span);
+  int vn = int(dis(rnd) * deg * span);
+  int u = -1, v = -1, n = 0;
+  for (int w : x.vertices()) {
+    if (un<0 && un > n+x.degree(w)) u = w;
+    if (vn<0 && vn > n+x.degree(w)) v = w;
     if (un>0 && vn>=0) break;
-    n += a.degree(w);
+    n += x.degree(w);
   }
-  if (u<0) u = K(un/deg);
-  if (v<0) v = K(vn/deg);
-  a.addEdge(u, v);
+  if (u<0) u = int(un/deg);
+  if (v<0) v = int(vn/deg);
+  return make_pair(u, v);
+}
+template <class G, class R>
+inline bool addRandomEdgeByDegree(G& a, R& rnd, int span) {
+  return addEdge(a, suggestAddRandomEdgeByDegree(a, rnd, span));
 }
 
 
@@ -140,34 +164,53 @@ void addRandomEdgeByDegree(G& a, R& rnd, K span) {
 // REMOVE-RANDOM-EDGE
 // ------------------
 
-template <class G, class K, class R>
-bool removeRandomEdge(G& a, R& rnd, K u) {
-  uniform_real_distribution<> dis(0.0, 1.0);
-  if (a.degree(u) == 0) return false;
-  K vi = K(dis(rnd) * a.degree(u)), i = 0;
-  for (K v : a.edgesKeys(u))
-    if (i++ == vi) { a.removeEdge(u, v); return true; }
-  return false;
+template <class G>
+inline bool removeEdge(G& a, const pair<int, int>& uv) {
+  auto [u, v] = uv;
+  if (u < 0 || v < 0) return false;
+  a.removeEdge(u, v);
+  return true;
 }
 
 
 template <class G, class R>
-bool removeRandomEdge(G& a, R& rnd) {
-  using K = typename G::key_type;
+auto suggestRemoveRandomEdge(const G& x, R& rnd, int u) {
   uniform_real_distribution<> dis(0.0, 1.0);
-  K u = K(dis(rnd) * a.span());
-  return removeRandomEdge(a, rnd, u);
+  if (x.degree(u) == 0) return make_pair(-1, -1);
+  int vi = int(dis(rnd) * x.degree(u)), i = 0;
+  for (int v : x.edges(u))
+    if (i++ == vi) return make_pair(u, v);
+  return make_pair(-1, -1);
+}
+template <class G, class R>
+inline bool removeRandomEdge(G& a, R& rnd, int u) {
+  return removeEdge(a, suggestRemoveRandomEdge(a, rnd, u));
 }
 
 
 template <class G, class R>
-bool removeRandomEdgeByDegree(G& a, R& rnd) {
-  using K = typename G::key_type;
+auto suggestRemoveRandomEdge(const G& x, R& rnd) {
   uniform_real_distribution<> dis(0.0, 1.0);
-  K v = K(dis(rnd) * a.size()), n = 0;
-  for (K u : a.vertexKeys()) {
-    if (v > n+a.degree(u)) n += a.degree(u);
-    else return removeRandomEdge(a, rnd, u);
+  int u = int(dis(rnd) * x.span());
+  return suggestRemoveRandomEdge(x, rnd, u);
+}
+template <class G, class R>
+inline bool removeRandomEdge(G& a, R& rnd) {
+  return removeEdge(a, suggestRemoveRandomEdge(a, rnd));
+}
+
+
+template <class G, class R>
+auto suggestRemoveRandomEdgeByDegree(const G& x, R& rnd) {
+  uniform_real_distribution<> dis(0.0, 1.0);
+  int v = int(dis(rnd) * x.size()), n = 0;
+  for (int u : x.vertices()) {
+    if (v > n+x.degree(u)) n += x.degree(u);
+    else return suggestRemoveRandomEdge(x, rnd, u);
   }
-  return false;
+  return make_pair(-1, -1);
+}
+template <class G, class R>
+inline bool removeRandomEdgeByDegree(G& a, R& rnd) {
+  return removeEdge(a, suggestRemoveRandomEdgeByDegree(a, rnd));
 }

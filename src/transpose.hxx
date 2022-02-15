@@ -1,5 +1,5 @@
 #pragma once
-#include "Graph.hxx"
+#include "DiGraph.hxx"
 
 
 
@@ -8,17 +8,19 @@
 // ---------
 
 template <class H, class G>
-void transposeTo(H& a, const G& x, bool unq=false) {
-  x.forEachVertex([&](auto u, auto d) { a.addVertex(u, d); });
-  x.forEachVertexKey([&](auto u) {
-    x.forEachEdge(u, [&](auto v, auto w) { a.addEdge(v, u, w); });
-  });
-  a.correct(unq);
+void transpose(H& a, const G& x) {
+  for (int u : x.vertices())
+    a.addVertex(u, x.vertexData(u));
+  for (int u : x.vertices()) {
+    for (int v : x.edges(u))
+      a.addEdge(v, u); // x.edgeData(u, v)
+  }
+  a.correct();
 }
 
 template <class G>
 auto transpose(const G& x) {
-  G a; transposeTo(a, x, true);
+  G a; transpose(a, x);
   return a;
 }
 
@@ -29,18 +31,19 @@ auto transpose(const G& x) {
 // ---------------------
 
 template <class H, class G>
-void transposeWithDegreeTo(H& a, const G& x, bool unq=false) {
-  x.forEachVertexKey([&](auto u) { a.addVertex(u, x.degree(u)); });
-  x.forEachVertexKey([&](auto u) {
-    x.forEachEdge(u, [&](auto v, auto w) { a.addEdge(v, u, w); });
-  });
-  a.correct(unq);
+void transposeWithDegree(H& a, const G& x) {
+  for (int u : x.vertices())
+    a.addVertex(u, x.degree(u));
+  for (int u : x.vertices()) {
+    for (int v : x.edges(u))
+      a.addEdge(v, u);  // x.edgeData(u, v)
+  }
+  a.correct();
 }
 
 template <class G>
 auto transposeWithDegree(const G& x) {
-  using K = typename G::key_type;
-  using H = decltype(retype(x, K(), K()));
-  H a; transposeWithDegreeTo(a, x, true);
+  using E = typename G::TEdge;
+  DiGraph<int, E> a; transposeWithDegree(a, x);
   return a;
 }

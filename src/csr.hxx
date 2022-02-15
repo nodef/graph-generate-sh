@@ -12,9 +12,10 @@ using std::transform;
 // SOURCE-OFFSETS
 // --------------
 
-template <class G, class J, class T>
-auto sourceOffsetsAs(const G& x, const J& ks, T _) {
-  vector<T> a; T i = 0;
+template <class G, class J>
+auto sourceOffsets(const G& x, const J& ks) {
+  int i = 0;
+  vector<int> a;
   a.reserve(x.order()+1);
   for (auto u : ks) {
     a.push_back(i);
@@ -23,18 +24,10 @@ auto sourceOffsetsAs(const G& x, const J& ks, T _) {
   a.push_back(i);
   return a;
 }
-template <class G, class T>
-inline auto sourceOffsetsAs(const G& x, T _) {
-  return sourceOffsetsAs(x, x.vertexKeys(), _);
-}
 
-template <class G, class J>
-inline auto sourceOffsets(const G& x, const J& ks) {
-  return sourceOffsetsAs(x, ks, size_t());
-}
 template <class G>
-inline auto sourceOffsets(const G& x) {
-  return sourceOffsetsAs(x, size_t());
+auto sourceOffsets(const G& x) {
+  return sourceOffsets(x, x.vertices());
 }
 
 
@@ -45,20 +38,22 @@ inline auto sourceOffsets(const G& x) {
 
 template <class G, class J, class F>
 auto destinationIndices(const G& x, const J& ks, F fp) {
-  using K = typename G::key_type; vector<K> a;
-  auto ids = valueIndicesUnorderedMap(ks);
-  for (auto u : ks) {
-    copyAppend(x.edgeKeys(u), a);
+  vector<int> a;
+  auto ids = indices(ks);
+  for (int u : ks) {
+    append(a, x.edges(u));
     auto ie = a.end(), ib = ie-x.degree(u);
-    fp(ib, ie); transform(ib, ie, ib, [&](auto v) { return K(ids[v]); });
+    fp(ib, ie); transform(ib, ie, ib, [&](int v) { return ids[v]; });
   }
   return a;
 }
+
 template <class G, class J>
-inline auto destinationIndices(const G& x, const J& ks) {
+auto destinationIndices(const G& x, const J& ks) {
   return destinationIndices(x, ks, [](auto ib, auto ie) {});
 }
+
 template <class G>
-inline auto destinationIndices(const G& x) {
-  return destinationIndices(x, x.vertexKeys());
+auto destinationIndices(const G& x) {
+  return destinationIndices(x, x.vertices());
 }

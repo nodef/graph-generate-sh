@@ -117,5 +117,5 @@ Options readOptions(int argc, char **argv) {
 
 const char* helpMessage() {
   return "For usage details, please try the following URL:\n"
-  "https://github.com/puzzlef/graph-properties";
+  "https://github.com/puzzlef/graph-generate";
 }

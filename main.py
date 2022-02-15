@@ -1,7 +1,7 @@
-# https://www.kaggle.com/wolfram77/puzzlef-graph-properties
+# https://www.kaggle.com/wolfram77/puzzlef-graph-generate
 import os
 from IPython.display import FileLink
-src="graph-properties"
+src="graph-generate"
 inp="/kaggle/input/graphs"
 out="{}.txt".format(src)
 !printf "" > "$out"

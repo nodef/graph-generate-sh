@@ -1,4 +1,4 @@
-src="graph-properties"
+src="graph-generate"
 out="/home/resources/Documents/subhajit/$src.log"
 ulimit -s unlimited
 printf "" > "$out"

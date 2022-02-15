@@ -14,20 +14,19 @@ using std::vector;
 
 template <class G, class H>
 auto components(const G& x, const H& xt) {
-  using K = typename G::key_type;
-  vector2d<K> a; vector<K> vs;
+  vector2d<int> a;
+  vector<int> vs;
   // original dfs
   auto vis = createContainer(x, bool());
-  x.forEachVertexKey([&](auto u) {
-    if (!vis[u]) dfsEndTo(vs, vis, x, u);
-  });
+  for (int u : x.vertices())
+    if (!vis[u]) dfsEndLoop(vs, vis, x, u);
   // transpose dfs
-  fillValue(vis, false);
+  fill(vis, false);
   while (!vs.empty()) {
-    auto u = vs.back(); vs.pop_back();
+    int u = vs.back(); vs.pop_back();
     if (vis[u]) continue;
-    a.push_back(vector<K>());
-    dfsTo(a.back(), vis, xt, u);
+    a.push_back(vector<int>());
+    dfsLoop(a.back(), vis, xt, u);
   }
   return a;
 }
@@ -39,11 +38,11 @@ auto components(const G& x, const H& xt) {
 // --------------
 // Get component id of each vertex.
 
-template <class G, class K>
-auto componentIds(const G& x, const vector2d<K>& cs) {
-  auto a = createContainer(x, K()); K i = 0;
+template <class G>
+auto componentIds(const G& x, const vector2d<int>& cs) {
+  auto a = createContainer(x, int()); int i = 0;
   for (const auto& c : cs) {
-    for (K u : c)
+    for (int u : c)
       a[u] = i;
     i++;
   }
@@ -57,20 +56,20 @@ auto componentIds(const G& x, const vector2d<K>& cs) {
 // ----------
 // Each component is represented as a vertex.
 
-template <class H, class G, class K>
-void blockgraphTo(H& a, const G& x, const vector2d<K>& cs) {
+template <class H, class G>
+void blockgraph(H& a, const G& x, const vector2d<int>& cs) {
   auto c = componentIds(x, cs);
-  x.forEachVertexKey([&](auto u) {
+  for (int u : x.vertices()) {
     a.addVertex(c[u]);
-    x.forEachEdgeKey(u, [&](auto v) {
+    for (int v : x.edges(u))
       if (c[u] != c[v]) a.addEdge(c[u], c[v]);
-    });
-  });
+  }
   a.correct();
 }
-template <class G, class K>
-inline auto blockgraph(const G& x, const vector2d<K>& cs) {
-  G a; blockgraphTo(a, x, cs);
+
+template <class G>
+auto blockgraph(const G& x, const vector2d<int>& cs) {
+  G a; blockgraph(a, x, cs);
   return a;
 }
 
@@ -80,15 +79,16 @@ inline auto blockgraph(const G& x, const vector2d<K>& cs) {
 // COMPONENTS-EQUAL
 // ----------------
 
-template <class G, class K>
-bool componentsEqual(const G& x, const vector<K>& xc, const G& y, const vector<K>& yc) {
+template <class G>
+bool componentsEqual(const G& x, const vector<int>& xc, const G& y, const vector<int>& yc) {
   if (xc != yc) return false;
-  for (size_t i=0, I=xc.size(); i<I; i++)
+  for (int i=0, I=xc.size(); i<I; i++)
     if (!verticesEqual(x, xc[i], y, yc[i])) return false;
   return true;
 }
-template <class G, class H, class K>
-inline bool componentsEqual(const G& x, const H& xt, const vector<K>& xc, const G& y, const H& yt, const vector<K>& yc) {
+
+template <class G, class H>
+bool componentsEqual(const G& x, const H& xt, const vector<int>& xc, const G& y, const H& yt, const vector<int>& yc) {
   return componentsEqual(x, xc, y, yc) && componentsEqual(xt, xc, yt, yc);
 }
 
@@ -98,8 +98,7 @@ inline bool componentsEqual(const G& x, const H& xt, const vector<K>& xc, const 
 // COMPONENTS-HASH
 // ---------------
 
-template <class K>
-auto componentsHash(const vector2d<K>& cs) {
+auto componentsHash(const vector2d<int>& cs) {
   vector<size_t> a;
   for (const auto& c : cs)
     a.push_back(hashValue(c));
