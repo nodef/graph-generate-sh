@@ -55,15 +55,16 @@ struct Options {
   typedef FileFormat     F;
   typedef GraphTransform T;
   public:
-  bool   help  = false;
-  string error = "";
-  string file  = "";
+  bool   help   = false;
+  string error  = "";
+  string file   = "";
+  string output = "";
   string formatStr    = "";
   string transformStr = "";
   string samplesStr   = "";
   F format    = F::UNKNOWN;
   T transform = T::IDENTITY;
-  int  samples    = 10;
+  int  samples    = 0;
   bool components = true;
   bool blockgraph = true;
   bool chains     = true;
@@ -89,6 +90,7 @@ Options readOptions(int argc, char **argv) {
     else if (k=="-f" || k=="--format")    a.formatStr    = argv[++i];
     else if (k=="-t" || k=="--transform") a.transformStr = argv[++i];
     else if (k=="-s" || k=="--samples")   a.samplesStr   = argv[++i];
+    else if (k=="-o" || k=="--output")    a.output       = argv[++i];
     else if (k=="--components") a.components = true;
     else if (k=="--blockgraph") a.blockgraph = true;
     else if (k=="--chains")     a.chains     = true;
@@ -105,7 +107,7 @@ Options readOptions(int argc, char **argv) {
   a.transform = parseGraphTransform(a.transformStr);
   if (a.format   ==F::UNKNOWN) { a.error = "\'"+a.formatStr   +"\' format is not recognized";    return a; }
   if (a.transform==T::UNKNOWN) { a.error = "\'"+a.transformStr+"\' transform is not recognized"; return a; }
-  if (a.samples<=0)            { a.error = "\'"+a.samplesStr+  "\' samples must be positive";    return a; }
+  if (a.samples<0)             { a.error = "\'"+a.samplesStr+  "\' samples must be positive";    return a; }
   return a;
 }
 
