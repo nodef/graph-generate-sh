@@ -17,11 +17,11 @@ using std::max;
 
 
 
-// READ-MTX
-// --------
+// PROCESS-MTX
+// -----------
 
-template <class G>
-void readMtx(G& a, istream& s) {
+template <class FV, class FE, class FC>
+void processMtx(istream& s, FV fv, FE fe, FC fc) {
   string ln, h0, h1, h2, h3, h4;
 
   // read header
@@ -41,17 +41,38 @@ void readMtx(G& a, istream& s) {
   ls >> r >> c >> sz;
   int n = max(r, c);
   for (int u=1; u<=n; u++)
-    a.addVertex(u);
+    fv(u);
 
   // read edges (from, to)
   while (getline(s, ln)) {
     int u, v;
     ls = stringstream(ln);
     if (!(ls >> u >> v)) break;
-    a.addEdge(u, v);
-    if (sym) a.addEdge(v, u);
+    fe(u, v);
+    if (sym) fe(v, u);
   }
-  a.correct();
+  fc();
+}
+
+template <class FV, class FE, class FC>
+void processMtx(const char *pth, FV fv, FE fe, FC fc) {
+  string buf = readFile(pth);
+  stringstream s(buf);
+  processMtx(s, fv, fe, fc);
+}
+
+
+
+
+// READ-MTX
+// --------
+
+template <class G>
+void readMtx(G& a, istream& s) {
+  auto fv = [&](int u) { a.addVertex(u); };
+  auto fe = [&](int u, int v) { a.addEdge(u, v); };
+  auto fc = [&]() { a.correct(); };
+  processMtx(s, fv, fe, fc);
 }
 
 auto readMtx(istream& s) {
