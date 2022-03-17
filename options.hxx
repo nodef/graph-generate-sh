@@ -62,9 +62,11 @@ struct Options {
   string formatStr    = "";
   string transformStr = "";
   string samplesStr   = "";
+  string countStr     = "";
   F format    = F::UNKNOWN;
   T transform = T::IDENTITY;
   int  samples    = 0;
+  int  count      = 1;
   bool components = true;
   bool blockgraph = true;
   bool chains     = true;
@@ -90,6 +92,7 @@ Options readOptions(int argc, char **argv) {
     else if (k=="-f" || k=="--format")    a.formatStr    = argv[++i];
     else if (k=="-t" || k=="--transform") a.transformStr = argv[++i];
     else if (k=="-s" || k=="--samples")   a.samplesStr   = argv[++i];
+    else if (k=="-c" || k=="--count")     a.countStr     = argv[++i];
     else if (k=="-o" || k=="--output")    a.output       = argv[++i];
     else if (k=="--components") a.components = true;
     else if (k=="--blockgraph") a.blockgraph = true;
@@ -103,11 +106,14 @@ Options readOptions(int argc, char **argv) {
   if (a.formatStr.empty()) a.formatStr = pathExtname(a.file);
   try { if (!a.samplesStr.empty()) a.samples = stoi(a.samplesStr); }
   catch (...) { a.error = "\'"+a.samplesStr+"\' samples is not an integer"; return a; }
+  try { if (!a.countStr.empty()) a.count = stoi(a.countStr); }
+  catch (...) { a.error = "\'"+a.countStr+"\' count is not an integer"; return a; }
   a.format    = parseFileFormat(a.formatStr);
   a.transform = parseGraphTransform(a.transformStr);
   if (a.format   ==F::UNKNOWN) { a.error = "\'"+a.formatStr   +"\' format is not recognized";    return a; }
   if (a.transform==T::UNKNOWN) { a.error = "\'"+a.transformStr+"\' transform is not recognized"; return a; }
   if (a.samples<0)             { a.error = "\'"+a.samplesStr+  "\' samples must be positive";    return a; }
+  if (a.count<0)               { a.error = "\'"+a.countStr+    "\' count must be positive";      return a; }
   return a;
 }
 

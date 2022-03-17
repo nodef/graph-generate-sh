@@ -43,6 +43,26 @@ string toString(const GraphDelta& x) {
   return a.str();
 }
 
+void toFiles(const char* dpth, const char *ipth, const GraphDelta& x) {
+  string ds; stringstream d(ds);
+  string is; stringstream i(is);
+  writePlain(d, x.deletions);
+  writePlain(i, x.insertions);
+  writeFile(dpth, d.str());
+  writeFile(ipth, i.str());
+}
+void toFiles(const char* pth, int i, const GraphDelta& x) {
+  string fil = pth;
+  size_t e   = fil.find_last_of('.');
+  string nam = e != size_t(-1)? fil.substr(0, e) : nam;
+  string ext = e != size_t(-1)? fil.substr(e, fil.length() - e) : ".txt";
+  string dstr; stringstream ds(dstr);
+  string istr; stringstream is(istr);
+  ds << nam << "-" << i << ext;
+  is << nam << "+" << i << ext;
+  toFiles(ds.str().c_str(), is.str().c_str(), x);
+}
+
 
 
 
@@ -63,8 +83,13 @@ void runMtxSamples(const Options& o) {
   print(x); printf(" (selfLoopDeadEnds)\n");
   auto xt = transposeWithDegree(x);
   print(xt); printf(" (transposeWithDegree)\n");
-  GraphDelta d = createMixedGraphDelta(x, o.samples/2, o.samples/2);
-  printf("%s", toString(d).c_str());
+  for (int c=0; c<o.count; c++) {
+    if (o.output.empty()) printf("# DELTA %d of %d\n", c, o.count);
+    else printf("Writing delta %d to %s ...\n", c, o.output.c_str());
+    GraphDelta d = createMixedGraphDelta(x, o.samples/2, o.samples/2);
+    if (o.output.empty()) printf("%s", toString(d).c_str());
+    else toFiles(o.output.c_str(), c, d);
+  }
 }
 
 void runMtx(const Options& o) {

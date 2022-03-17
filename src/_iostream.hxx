@@ -59,6 +59,23 @@ void writeFile(const string& pth, const string& data) {
 // WRITE
 // -----
 
+template <class T>
+void writePlain(ostream& a, const T& v) {
+  a << v;
+}
+
+template <class K, class V>
+void writePlain(ostream& a, const pair<K, V>& x) {
+  a << x.first << ' ' << x.second;
+}
+
+template <class T>
+void writePlain(ostream& a, const vector<T>& x) {
+  for (T v : x)
+  { writePlain(a, v); a << '\n'; }
+}
+
+
 template <class K, class V>
 ostream& operator<<(ostream& a, const pair<K, V>& x) {
   a << x.first << ": " << x.second;
