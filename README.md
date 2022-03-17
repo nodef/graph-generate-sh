@@ -1,7 +1,18 @@
 Generate a batch of deletions/insertions of edges upon a fixed graph.
 
 ```bash
-## With fixed graphs:
+## For Community Detection:
+# Convert MTX to plain edges file (no weights).
+./a.out ~/data/web-Google.mtx --output ~/data-tmp/web-Google.txt
+
+# Generate 5 graph deltas of size 10000.
+./a.out ~/data/web-Google.mtx --output ~/data-tmp/web-Google.txt --count 5 --samples 10000
+```
+
+<br>
+
+```bash
+## For PageRank:
 ## -s: batch size (50-50 mix of deletions and insertions)
 $ ./a.out -s 10000 ~/data/web-Stanford.mtx
 $ ./a.out -s 10000 ~/data/web-Google.mtx
