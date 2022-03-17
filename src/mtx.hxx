@@ -117,3 +117,27 @@ void writeMtx(string pth, const G& x) {
   f << s.rdbuf();
   f.close();
 }
+
+
+
+
+// REWRITE-MTX
+// -----------
+
+void rewriteMtx(ostream& a, istream& s) {
+  auto fv = [&](int u) {};
+  auto fe = [&](int u, int v) { a << u << ' ' << v << '\n'; };
+  auto fc = [&]() {};
+  processMtx(s, fv, fe, fc);
+}
+void rewriteMtx(ostream& a, const char *pth) {
+  string buf = readFile(pth);
+  stringstream s(buf);
+  rewriteMtx(a, s);
+}
+void rewriteMtx(const char *out, const char *pth) {
+  string buf = readFile(pth), abuf;
+  stringstream is(buf), a(abuf);
+  rewriteMtx(a, is);
+  writeFile(out, a.str());
+}
