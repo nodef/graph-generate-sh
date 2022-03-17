@@ -13,6 +13,7 @@ using std::vector;
 using std::ios;
 using std::ostream;
 using std::ifstream;
+using std::ofstream;
 using std::is_fundamental;
 using std::cout;
 
@@ -29,6 +30,27 @@ string readFile(const char *pth) {
   f.seekg(0);
   f.read((char*) a.data(), a.size());
   return a;
+}
+string readFile(const string& pth) {
+  return readFile(pth.c_str());
+}
+
+
+
+
+// WRITE-FILE
+// ----------
+
+void writeFile(const char *pth, const char *data, size_t len) {
+  ofstream f(pth);
+  f.write(data, len);
+  f.close();
+}
+void writeFile(const char* pth, const string& data) {
+  return writeFile(pth, data.c_str(), data.length());
+}
+void writeFile(const string& pth, const string& data) {
+  return writeFile(pth.c_str(), data);
 }
 
 
