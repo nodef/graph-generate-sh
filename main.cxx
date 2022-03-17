@@ -49,7 +49,14 @@ string toString(const GraphDelta& x) {
 // RUN-MTX
 // -------
 
-void runMtx(const Options& o) {
+void runMtxRewrite(const Options& o) {
+  if (o.output.empty()) printf("Rewriting %s ...\n", o.file.c_str());
+  else printf("Rewriting %s to %s ...\n", o.file.c_str(), o.output.c_str());
+  if (o.output.empty()) rewriteMtx(cout, o.file.c_str());
+  else rewriteMtx(o.output.c_str(), o.file.c_str());
+}
+
+void runMtxSamples(const Options& o) {
   printf("Loading graph %s ...\n", o.file.c_str());
   auto x  = readMtx(o.file.c_str()); println(x);
   selfLoopTo(x, [&](int u) { return isDeadEnd(x, u); });
@@ -58,6 +65,11 @@ void runMtx(const Options& o) {
   print(xt); printf(" (transposeWithDegree)\n");
   GraphDelta d = createMixedGraphDelta(x, o.samples/2, o.samples/2);
   printf("%s", toString(d).c_str());
+}
+
+void runMtx(const Options& o) {
+  if (o.samples == 0) runMtxRewrite(o);
+  else runMtxSamples(o);
 }
 
 
