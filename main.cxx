@@ -74,7 +74,7 @@ void performTransform(G& a, int& w, GraphTransform t) {
   typedef GraphTransform T;
   switch (t) {
     case T::SYMMETRICIZE:
-      symmetricizeTo(a);
+      a = symmetricize(a);
       print(a); printf(" (symmetricize)\n");
       break;
     case T::LOOP_VERTICES:
