@@ -66,23 +66,44 @@ void toFiles(const char* pth, int i, const GraphDelta& x) {
 
 
 
-// RUN-MTX
-// -------
+// RUN
+// ---
 
-void runMtxRewrite(const Options& o) {
-  if (o.output.empty()) printf("Rewriting %s ...\n", o.file.c_str());
-  else printf("Rewriting %s to %s ...\n", o.file.c_str(), o.output.c_str());
-  if (o.output.empty()) rewriteMtx(cout, o.file.c_str());
-  else rewriteMtx(o.output.c_str(), o.file.c_str());
+template <class G>
+void performTransform(G& a, int& w, GraphTransform t) {
+  typedef GraphTransform T;
+  switch (t) {
+    case T::SYMMETRICIZE:
+      symmetricizeTo(a);
+      print(a); printf(" (symmetricize)\n");
+      break;
+    case T::LOOP_VERTICES:
+      selfLoopTo(a, [](int u) { return u; });
+      print(a); printf(" (selfLoopVertices)\n");
+      break;
+    case T::LOOP_DEADENDS:
+      selfLoopTo(a, [&](int u) { return isDeadEnd(x, u); });
+      print(a); printf(" (selfLoopDeadEnds)\n");
+      break;
+    case T::CLEAR_WEIGHTS:
+      w = 0;
+      print(a); printf(" (clearWeights)\n");
+      break;
+    case T::SET_WEIGHTS:
+      w = 1;
+      print(a); printf(" (setWeights)\n");
+      break;
+  }
 }
 
-void runMtxSamples(const Options& o) {
-  printf("Loading graph %s ...\n", o.file.c_str());
-  auto x  = readMtx(o.file.c_str()); println(x);
-  selfLoopTo(x, [&](int u) { return isDeadEnd(x, u); });
-  print(x); printf(" (selfLoopDeadEnds)\n");
-  auto xt = transposeWithDegree(x);
-  print(xt); printf(" (transposeWithDegree)\n");
+
+void runDelta(const Options& o) {
+  printf("Loading graph %s ...\n", o.input.c_str());
+  auto x  = readMtx(o.input.c_str()); println(x); int w = -1;
+  for (auto t : o.transforms)
+    performTransform(x, w, t);
+  // auto xt = transposeWithDegree(x);
+  // print(xt); printf(" (transposeWithDegree)\n");
   for (int c=0; c<o.count; c++) {
     if (o.output.empty()) printf("# DELTA %d of %d\n", c, o.count);
     else printf("Writing delta %d to %s ...\n", c, o.output.c_str());
@@ -92,9 +113,30 @@ void runMtxSamples(const Options& o) {
   }
 }
 
-void runMtx(const Options& o) {
-  if (o.samples == 0) runMtxRewrite(o);
-  else runMtxSamples(o);
+
+void runPlainRewrite(const Options& o) {
+  if (o.output.empty()) { rewriteMtxEdgelist(cout, o.input.c_str()); return; }
+  printf("Rewriting %s to %s ...\n", o.input.c_str(), o.output.c_str());
+  rewriteMtxEdgelist(o.output.c_str(), o.input.c_str());
+}
+
+void runRewrite(const Options& o) {
+  typedef FileFormat F;
+  if (o.formats[1] == F::FIXED_EDGES && o.transforms.size() == 0) return runPlainRewrite(o);
+  printf("Loading graph %s ...\n", o.input.c_str());
+  auto x  = readMtx(o.input.c_str()); println(x); int w = -1;
+  for (auto t : o.transforms)
+    performTransform(x, w, t);
+  if (o.formats[1] == F::FIXED_EDGES) {
+    if (o.output.empty()) { writeEdgelist(cout, x); return; }
+    printf("Writing to %s ...\n", o.output.c_str());
+    writeEdgelist(o.output.c_str(), x); return;
+  }
+  string ws = w < 0? "" : to_string(w);
+  auto   fw = [&](int u, int v) { return ws; };
+  if (o.output.empty()) { writeMtx(cout, x, fw); return; }
+  printf("Writing to %s ...\n", o.output.c_str());
+  writeMtx(o.output, x, fw);
 }
 
 
@@ -104,14 +146,15 @@ void runMtx(const Options& o) {
 // ----
 
 int main(int argc, char **argv) {
+  typedef Command    C;
   typedef FileFormat F;
   Options o = readOptions(argc, argv);
+  for (auto f : o.formats)
+    if (f == F::TEMPORAL_TXT) o.error = "Temporal (.txt) format is not supported.";
   if (o.help)           { printf("%s\n\n", helpMessage()); return 0; }
   if (!o.error.empty()) { printf("error: %s\n\n%s\n\n", o.error.c_str(), helpMessage()); return 1; }
-  switch (o.format) {
-    default: break;
-    case F::FIXED_MTX:    runMtx(o);  break;
-  }
+  if (o.command == C::DELTA) runDelta(o);
+  else runRewrite(o);
   printf("\n");
   return 0;
 }

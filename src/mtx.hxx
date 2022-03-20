@@ -99,23 +99,34 @@ auto readMtx(const char *pth) {
 // WRITE-MTX
 // ---------
 
-template <class G>
-void writeMtx(ostream& a, const G& x) {
+template <class G, class FW>
+void writeMtx(ostream& a, const G& x, FW fw) {
   a << "%%MatrixMarket matrix coordinate real asymmetric\n";
   a << x.order() << " " << x.order() << " " << x.size() << "\n";
   for (int u : x.vertices()) {
     for (int v : x.edges(u))
-      a << u << " " << v << " " << x.edgeData(u) << "\n";
+      a << u << " " << v << " " << fw(u, v) << "\n";
   }
+}
+template <class G>
+void writeMtx(ostream& a, const G& x) {
+  auto fw = [&](int u, int v) { return x.edgeData(u, v); };
+  writeMtx(a, x, fw);
+}
+
+template <class G, class FW>
+void writeMtx(string pth, const G& x, FW fw) {
+  string s0; stringstream s(s0);
+  writeMtx(s, x, fw);
+  ofstream f(pth);
+  f << s.rdbuf();
+  f.close();
 }
 
 template <class G>
 void writeMtx(string pth, const G& x) {
-  string s0; stringstream s(s0);
-  writeMtx(s, x);
-  ofstream f(pth);
-  f << s.rdbuf();
-  f.close();
+  auto fw = [&](int u, int v) { return x.edgeData(u, v); };
+  writeMtx(pth, x, fw);
 }
 
 
@@ -124,20 +135,20 @@ void writeMtx(string pth, const G& x) {
 // REWRITE-MTX
 // -----------
 
-void rewriteMtx(ostream& a, istream& s) {
+void rewriteMtxEdgelist(ostream& a, istream& s) {
   auto fv = [&](int u) {};
   auto fe = [&](int u, int v) { a << u << ' ' << v << '\n'; };
   auto fc = [&]() {};
   processMtx(s, fv, fe, fc);
 }
-void rewriteMtx(ostream& a, const char *pth) {
+void rewriteMtxEdgelist(ostream& a, const char *pth) {
   string buf = readFile(pth);
   stringstream s(buf);
-  rewriteMtx(a, s);
+  rewriteMtxEdgelist(a, s);
 }
-void rewriteMtx(const char *out, const char *pth) {
+void rewriteMtxEdgelist(const char *out, const char *pth) {
   string buf = readFile(pth), abuf;
   stringstream is(buf), a(abuf);
-  rewriteMtx(a, is);
+  rewriteMtxEdgelist(a, is);
   writeFile(out, a.str());
 }
