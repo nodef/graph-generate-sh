@@ -1,38 +1,35 @@
-Generate a batch of deletions/insertions of edges upon a fixed graph.
+Perform certain operations upon a fixed graph.
 
 ```bash
-## For Community Detection:
-# Convert MTX to plain edges file (no weights).
-./a.out ~/data/web-Google.mtx --output ~/data-tmp/web-Google.txt
+## REWRITE
+## -------
 
-# Generate 5 graph deltas of size 10000.
-./a.out ~/data/web-Google.mtx --output ~/data-tmp/web-Google.txt --count 5 --samples 10000
+# Rewrite MTX as plain edges file (no weights).
+$ ./a.out rewrite ~/data/web-Google.mtx --output ~/data/web-Google.edges
+
+# Rewrite MTX as plain edges file after making it symmetric.
+$ ./a.out rewrite ~/data/web-Google.mtx --transform symmetricize --output ~/data/web-Google_symmetric.edges
+
+
+# Rewrite MTX after making it symmetric and seting edge weights to 1.
+$ ./a.out rewrite ~/data/web-Google.mtx --transform symmetricize,set-weights --output ~/data/web-Google_symmetric.mtx
+
+# Generate MTX after adding self-loops to dead ends.
+$ ./a.out rewrite ~/data/web-Google.mtx --transform loop-deadends --output ~/data/web-Google_nodeadends.mtx
 ```
 
 <br>
 
 ```bash
-## For PageRank:
-## -s: batch size (50-50 mix of deletions and insertions)
-$ ./a.out -s 10000 ~/data/web-Stanford.mtx
-$ ./a.out -s 10000 ~/data/web-Google.mtx
-$ ...
+## DELTA
+## -----
 
-# Loading graph /home/subhajit/data/web-Stanford.mtx ...
-# order: 281903 size: 2312497 {}
-# order: 281903 size: 2312669 {} (selfLoopDeadEnds)
-# order: 281903 size: 2312669 {} (transposeWithDegree)
-# - 115217 214128
-# - 96560 153236
-# - 244152 237905
-# - 129538 226933
-# ...
-# + 274818 63930
-# + 270085 147496
-# + 150545 703
-# + 133155 269970
-# ...
-#
-# Loading graph /home/subhajit/data/web-Google.mtx ...
-# ...
+# Generate a graph delta (batch) of 10000 edges (samples) with an equal mix of insertions and deletions.
+$ ./a.out delta ~/data/web-Google.mtx --samples 10000
+
+# Generate a graph delta and write to file web-Google(+/-).delta.
+$ ./a.out delta ~/data/web-Google.mtx --samples 10000 --output web-Google.delta
+
+# Generate 5 graph deltas and write to file web-Google(+/-).delta.
+$ ./a.out delta ~/data/web-Google.mtx --samples 10000 --count 5 --output web-Google.delta
 ```
