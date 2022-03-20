@@ -11,7 +11,7 @@ template <class G>
 void symmetricizeTo(G& a) {
   for (int u : a.vertices()) {
     for (int v : a.edges(u))
-      a.addEdge(v, u, a.edgeData(u, v));
+      a.addEdge(v, u); // , a.edgeData(u, v));
   }
   a.correct();
 }
