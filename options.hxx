@@ -49,11 +49,12 @@ auto parseFileFormat(const string& x) {
 auto parseFileFormats(const string& x) {
   typedef FileFormat F; vector<F> a;
   string y = removeAll(x, ' ');
-  for (size_t i=0; i<y.length(); ) {
+  for (size_t i=0; i<y.length();) {
     size_t p = y.find_first_of(',', i);
     if (p==string::npos) p = y.length();
     string f = y.substr(i, p-i);
     a.push_back(parseFileFormat(f));
+    i = p+1;
   }
   return a;
 }
@@ -86,11 +87,12 @@ auto parseGraphTransform(const string& x) {
 auto parseGraphTransforms(const string& x) {
   typedef GraphTransform T; vector<T> a;
   string y = removeAll(x, ' ');
-  for (size_t i=0; i<y.length(); ) {
+  for (size_t i=0; i<y.length();) {
     size_t p = y.find_first_of(',', i);
     if (p==string::npos) p = y.length();
     string t = y.substr(i, p-i);
     a.push_back(parseGraphTransform(t));
+    i = p+1;
   }
   return a;
 }

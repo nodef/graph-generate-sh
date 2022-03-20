@@ -28,8 +28,8 @@ int countLines(const string& x) {
 
 
 
-// REMOVE-SPACES
-// -------------
+// REMOVE-ALL
+// ----------
 
 void removeAll(string& x, char c) {
   auto ie = remove(x.begin(), x.end(), c);
@@ -37,6 +37,6 @@ void removeAll(string& x, char c) {
 }
 
 string removeAll(const string& x, char c) {
-  string a = x; removeAll(x, c);
+  string a = x; removeAll(a, c);
   return a;
 }

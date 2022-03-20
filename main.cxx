@@ -82,7 +82,7 @@ void performTransform(G& a, int& w, GraphTransform t) {
       print(a); printf(" (selfLoopVertices)\n");
       break;
     case T::LOOP_DEADENDS:
-      selfLoopTo(a, [&](int u) { return isDeadEnd(x, u); });
+      selfLoopTo(a, [&](int u) { return isDeadEnd(a, u); });
       print(a); printf(" (selfLoopDeadEnds)\n");
       break;
     case T::CLEAR_WEIGHTS:

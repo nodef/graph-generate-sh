@@ -23,7 +23,7 @@ void processEdgelist(istream& s, FE fe, FC fc) {
   string ln;
   while (getline(s, ln)) {
     int u, v;
-    ls = stringstream(ln);
+    stringstream ls(ln);
     if (!(ls >> u >> v)) break;
     fe(u, v);
   }
@@ -47,7 +47,7 @@ template <class G>
 void readEdgelist(G& a, istream& s) {
   auto fe = [&](int u, int v) { a.addEdge(u, v); };
   auto fc = [&]() { a.correct(); };
-  processEdgelist(s, fv, fe, fc);
+  processEdgelist(s, fe, fc);
 }
 
 auto readEdgelist(istream& s) {
