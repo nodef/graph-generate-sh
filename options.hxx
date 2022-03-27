@@ -162,7 +162,7 @@ Options readOptions(int argc, char **argv) {
   if (a.formats.size()<1) a.formats.push_back(parseFileFormat(pathExtname(a.input)));
   if (a.formats.size()<2) a.formats.push_back(parseFileFormat(pathExtname(a.output)));
   if (a.formats[0]==F::UNKNOWN) { a.error = "unknown input format"; return a; }
-  if (a.formats[1]==F::UNKNOWN && !a.output.empty()) { a.error = "unknown output format"; return a; }
+  if (a.formats[1]==F::UNKNOWN && !a.output.empty() && a.command==C::REWRITE) { a.error = "unknown output format"; return a; }
   a.transforms = parseGraphTransforms(a.transformsStr);
   for (T t : a.transforms)
     if (t==T::UNKNOWN) { a.error = "\'"+a.transformsStr +"\' transform is not recognized"; return a; }
