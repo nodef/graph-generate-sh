@@ -70,33 +70,31 @@ void toFiles(const char* pth, int i, const GraphDelta& x) {
 // ---
 
 template <class G>
-void performTransform(G& a, int& w, GraphTransform t) {
-  typedef GraphTransform T;
-  switch (t) {
-    case T::UNSYMMETRICIZE:
-      a = unsymmetricize(a);
-      print(a); printf(" (unsymmetricize)\n");
-      break;
-    case T::SYMMETRICIZE:
-      a = symmetricize(a);
-      print(a); printf(" (symmetricize)\n");
-      break;
-    case T::LOOP_VERTICES:
-      selfLoopTo(a, [](int u) { return u; });
-      print(a); printf(" (selfLoopVertices)\n");
-      break;
-    case T::LOOP_DEADENDS:
-      selfLoopTo(a, [&](int u) { return isDeadEnd(a, u); });
-      print(a); printf(" (selfLoopDeadEnds)\n");
-      break;
-    case T::CLEAR_WEIGHTS:
-      w = 0;
-      print(a); printf(" (clearWeights)\n");
-      break;
-    case T::SET_WEIGHTS:
-      w = 1;
-      print(a); printf(" (setWeights)\n");
-      break;
+void performTransform(G& a, int& w, string t) {
+  if (t=="UNKNOWN") {}
+  else if (t=="UNSYMMETRICIZE") {
+    a = unsymmetricize(a);
+    print(a); printf(" (unsymmetricize)\n");
+  }
+  else if (t=="SYMMETRICIZE") {
+    a = symmetricize(a);
+    print(a); printf(" (symmetricize)\n");
+  }
+  else if (t=="LOOP_VERTICES") {
+    selfLoopTo(a, [](int u) { return u; });
+    print(a); printf(" (selfLoopVertices)\n");
+  }
+  else if (t=="LOOP_DEADENDS") {
+    selfLoopTo(a, [&](int u) { return isDeadEnd(a, u); });
+    print(a); printf(" (selfLoopDeadEnds)\n");
+  }
+  else if (t=="CLEAR_WEIGHTS") {
+    w = 0;
+    print(a); printf(" (clearWeights)\n");
+  }
+  else if (t=="SET_WEIGHTS") {
+    w = 1;
+    print(a); printf(" (setWeights)\n");
   }
 }
 

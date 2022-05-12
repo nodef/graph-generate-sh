@@ -65,29 +65,18 @@ auto parseFileFormats(const string& x) {
 // GRAPH TRANSFORM
 // ---------------
 
-enum class GraphTransform {
-  UNKNOWN,
-  UNSYMMETRICIZE,
-  SYMMETRICIZE,
-  LOOP_DEADENDS,
-  LOOP_VERTICES,
-  CLEAR_WEIGHTS,
-  SET_WEIGHTS,
-};
-
-auto parseGraphTransform(const string& x) {
-  typedef GraphTransform T;
-  if (x=="unsymmetricize" || x=="unsymmetric"  || x=="unsym") return T::UNSYMMETRICIZE;
-  if (x=="symmetricize"   || x=="symmetric"    || x=="sym")   return T::SYMMETRICIZE;
-  if (x=="loop-deadends"  || x=="loop")     return T::LOOP_DEADENDS;
-  if (x=="loop-vertices"  || x=="loop-all") return T::LOOP_VERTICES;
-  if (x=="clear-weights"  || x=="zero-weights" || x=="no-weights"     || x=="weights=0") return T::CLEAR_WEIGHTS;
-  if (x=="set-weights"    || x=="unit-weights" || x=="common-weights" || x=="weights=1") return T::SET_WEIGHTS;
-  return T::UNKNOWN;
+string parseGraphTransform(const string& x) {
+  if (x=="unsymmetricize" || x=="unsymmetric"  || x=="unsym") return "UNSYMMETRICIZE";
+  if (x=="symmetricize"   || x=="symmetric"    || x=="sym")   return "SYMMETRICIZE";
+  if (x=="loop-deadends"  || x=="loop")     return "LOOP_DEADENDS";
+  if (x=="loop-vertices"  || x=="loop-all") return "LOOP_VERTICES";
+  if (x=="clear-weights"  || x=="zero-weights" || x=="no-weights"     || x=="weights=0") return "CLEAR_WEIGHTS";
+  if (x=="set-weights"    || x=="unit-weights" || x=="common-weights" || x=="weights=1") return "SET_WEIGHTS";
+  return x[0]=='+' || x[0]=='-'? x : "UNKNOWN";
 }
 
 auto parseGraphTransforms(const string& x) {
-  typedef GraphTransform T; vector<T> a;
+  vector<string> a;
   string y = removeAll(x, ' ');
   for (size_t i=0; i<y.length();) {
     size_t p = y.find_first_of(',', i);
@@ -109,7 +98,6 @@ struct Options {
   private:
   typedef Command        C;
   typedef FileFormat     F;
-  typedef GraphTransform T;
   public:
   bool   help    = false;
   string error   = "";
@@ -120,7 +108,7 @@ struct Options {
   string transformsStr = "";
   string samplesStr    = "";
   string countStr      = "";
-  vector<T> transforms {};
+  vector<string> transforms {};
   vector<F> formats {};
   C command   = C::UNKNOWN;
   int samples = 0;
@@ -139,7 +127,6 @@ string pathExtname(const string& path) {
 Options readOptions(int argc, char **argv) {
   typedef Command        C;
   typedef FileFormat     F;
-  typedef GraphTransform T;
   Options a;
   for (int i=1; i<argc; ++i) {
     string k = argv[i];
@@ -166,8 +153,8 @@ Options readOptions(int argc, char **argv) {
   if (a.formats[0]==F::UNKNOWN) { a.error = "unknown input format"; return a; }
   if (a.formats[1]==F::UNKNOWN && !a.output.empty() && a.command==C::REWRITE) { a.error = "unknown output format"; return a; }
   a.transforms = parseGraphTransforms(a.transformsStr);
-  for (T t : a.transforms)
-    if (t==T::UNKNOWN) { a.error = "\'"+a.transformsStr +"\' transform is not recognized"; return a; }
+  for (const string& t : a.transforms)
+    if (t=="UNKNOWN") { a.error = "\'"+a.transformsStr +"\' transform is not recognized"; return a; }
   try { if (!a.samplesStr.empty()) a.samples = stoi(a.samplesStr); }
   catch (...) { a.error = "\'"+a.samplesStr+"\' samples is not an integer"; return a; }
   try { if (!a.countStr.empty()) a.count = stoi(a.countStr); }
