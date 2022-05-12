@@ -33,7 +33,7 @@ template <class G>
 auto unsymmetricize(const G& x) {
   G a;
   for (int u : x.vertices())
-    a.addVertex(a);
+    a.addVertex(u);
   for (int u : x.vertices()) {
     for (int v : x.edges(u)) {
       int _u = min(u, v);
@@ -41,6 +41,7 @@ auto unsymmetricize(const G& x) {
       a.addEdge(_u, _v);
     }
   }
+  a.correct();
   return a;
 }
 
