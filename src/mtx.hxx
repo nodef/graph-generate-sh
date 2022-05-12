@@ -20,6 +20,20 @@ using std::max;
 // PROCESS-MTX
 // -----------
 
+template <class FE, class FC>
+void processEdges(istream& s, FE fe, FC fc, bool sym=false) {
+  string ln;
+  stringstream ls(ln);
+  while (getline(s, ln)) {
+    int u, v;
+    ls = stringstream(ln);
+    if (!(ls >> u >> v)) break;
+    fe(u, v);
+    if (sym) fe(v, u);
+  }
+  fc();
+}
+
 template <class FV, class FE, class FC>
 void processMtx(istream& s, FV fv, FE fe, FC fc) {
   string ln, h0, h1, h2, h3, h4;
@@ -44,14 +58,7 @@ void processMtx(istream& s, FV fv, FE fe, FC fc) {
     fv(u);
 
   // read edges (from, to)
-  while (getline(s, ln)) {
-    int u, v;
-    ls = stringstream(ln);
-    if (!(ls >> u >> v)) break;
-    fe(u, v);
-    if (sym) fe(v, u);
-  }
-  fc();
+  processEdges(s, fe, fc, sym);
 }
 
 template <class FV, class FE, class FC>

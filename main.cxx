@@ -1,6 +1,7 @@
 #include <tuple>
 #include <string>
 #include <vector>
+#include <sstream>
 #include <iostream>
 #include <algorithm>
 #include <cstdlib>
@@ -72,6 +73,22 @@ void toFiles(const char* pth, int i, const GraphDelta& x) {
 template <class G>
 void performTransform(G& a, int& w, string t) {
   if (t=="UNKNOWN") {}
+  else if (t[0]=='-') {
+    bool sym = t[1]=='-';
+    string f = readFile(t.c_str()+(sym? 2:1));
+    stringstream fs(f);
+    auto fe = [&](int u, int v) { a.addEdge(u, v); };
+    auto fc = [&]() { a.correct(); };
+    processEdges(fs, fe, fc, sym);
+  }
+  else if (t[0]=='+') {
+    bool sym = t[1]=='+';
+    string f = readFile(t.c_str()+(sym? 2:1));
+    stringstream fs(f);
+    auto fe = [&](int u, int v) { a.removeEdge(u, v); };
+    auto fc = [&] { a.correct(); };
+    processEdges(fs, fe, fc, sym);
+  }
   else if (t=="UNSYMMETRICIZE") {
     a = unsymmetricize(a);
     print(a); printf(" (unsymmetricize)\n");
