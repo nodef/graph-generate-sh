@@ -73,6 +73,10 @@ template <class G>
 void performTransform(G& a, int& w, GraphTransform t) {
   typedef GraphTransform T;
   switch (t) {
+    case T::UNSYMMETRICIZE:
+      a = unsymmetricize(a);
+      print(a); printf(" (unsymmetricize)\n");
+      break;
     case T::SYMMETRICIZE:
       a = symmetricize(a);
       print(a); printf(" (symmetricize)\n");

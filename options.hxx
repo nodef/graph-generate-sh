@@ -67,6 +67,7 @@ auto parseFileFormats(const string& x) {
 
 enum class GraphTransform {
   UNKNOWN,
+  UNSYMMETRICIZE,
   SYMMETRICIZE,
   LOOP_DEADENDS,
   LOOP_VERTICES,
@@ -76,11 +77,12 @@ enum class GraphTransform {
 
 auto parseGraphTransform(const string& x) {
   typedef GraphTransform T;
-  if (x=="symmetricize"  || x=="symmetric"    || x=="sym") return T::SYMMETRICIZE;
-  if (x=="loop-deadends" || x=="loop")     return T::LOOP_DEADENDS;
-  if (x=="loop-vertices" || x=="loop-all") return T::LOOP_VERTICES;
-  if (x=="clear-weights" || x=="zero-weights" || x=="no-weights"     || x=="weights=0") return T::CLEAR_WEIGHTS;
-  if (x=="set-weights"   || x=="unit-weights" || x=="common-weights" || x=="weights=1") return T::SET_WEIGHTS;
+  if (x=="unsymmetricize" || x=="unsymmetric"  || x=="unsym") return T::UNSYMMETRICIZE;
+  if (x=="symmetricize"   || x=="symmetric"    || x=="sym")   return T::SYMMETRICIZE;
+  if (x=="loop-deadends"  || x=="loop")     return T::LOOP_DEADENDS;
+  if (x=="loop-vertices"  || x=="loop-all") return T::LOOP_VERTICES;
+  if (x=="clear-weights"  || x=="zero-weights" || x=="no-weights"     || x=="weights=0") return T::CLEAR_WEIGHTS;
+  if (x=="set-weights"    || x=="unit-weights" || x=="common-weights" || x=="weights=1") return T::SET_WEIGHTS;
   return T::UNKNOWN;
 }
 
