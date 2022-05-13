@@ -77,17 +77,19 @@ void performTransform(G& a, int& w, string t) {
     bool sym = t[1]=='-';
     string f = readFile(t.c_str()+(sym? 2:1));
     stringstream fs(f);
-    auto fe = [&](int u, int v) { a.addEdge(u, v); };
+    auto fe = [&](int u, int v) { a.removeEdge(u, v); };
     auto fc = [&]() { a.correct(); };
     processEdges(fs, fe, fc, sym);
+    print(a); printf(" (%s)\n", t.c_str());
   }
   else if (t[0]=='+') {
     bool sym = t[1]=='+';
     string f = readFile(t.c_str()+(sym? 2:1));
     stringstream fs(f);
-    auto fe = [&](int u, int v) { a.removeEdge(u, v); };
+    auto fe = [&](int u, int v) { a.addEdge(u, v); };
     auto fc = [&] { a.correct(); };
     processEdges(fs, fe, fc, sym);
+    print(a); printf(" (%s)\n", t.c_str());
   }
   else if (t=="UNSYMMETRICIZE") {
     a = unsymmetricize(a);
