@@ -15,41 +15,39 @@ log() {
   stdbuf --output=L "$@" 2>&1 | tee -a "$out"
 }
 
+# generate-delta <graph> <batch_size> <repeat>
 generate-delta() {
-  log cp ~/data/"$1.mtx" ~/out/"$1.mtx"
-  log ./a.out rewrite ~/out/"$1.mtx" -t unsymmetricize,set-weights -o ~/out/"$1_unsymmetric.mtx"
-  log ./a.out rewrite ~/out/"$1.mtx"                -o ~/out/"$1.edges"
-  log ./a.out delta   ~/out/"$1.mtx" -s 10000 -c 5  -o ~/out/"$1.delta"
+  G="$1"; B="$2"; R="$3"; S=$(( 2*B ))
+  cp ~/data/"${G}.mtx" ~/out/"${G}.mtx"
+  log ./a.out rewrite  ~/out/"${G}.mtx" -t "unsymmetricize,set-weights" -o ~/out/"${G}_unsymmetric.mtx"
+  log ./a.out rewrite  ~/out/"${G}.mtx"                 -o ~/out/"${G}.edges"
+  log ./a.out delta    ~/out/"${G}.mtx" -s "$S" -c "$R" -o ~/out/"${G}_$B.delta"
 }
 
-generate-apply-mtx() {
-  log ./a.out rewrite ~/out/"$1.mtx" -t --$HOME/out/$1-0.delta,set-weights -o ~/out/"$1-0.mtx"
-  log ./a.out rewrite ~/out/"$1.mtx" -t	++$HOME/out/$1+0.delta,set-weights -o ~/out/"$1+0.mtx"
-  log ./a.out rewrite ~/out/"$1.mtx" -t	--$HOME/out/$1-1.delta,set-weights -o ~/out/"$1-1.mtx"
-  log ./a.out rewrite ~/out/"$1.mtx" -t	++$HOME/out/$1+1.delta,set-weights -o ~/out/"$1+1.mtx"
-  log ./a.out rewrite ~/out/"$1.mtx" -t	--$HOME/out/$1-2.delta,set-weights -o ~/out/"$1-2.mtx"
-  log ./a.out rewrite ~/out/"$1.mtx" -t	++$HOME/out/$1+2.delta,set-weights -o ~/out/"$1+2.mtx"
-  log ./a.out rewrite ~/out/"$1.mtx" -t	--$HOME/out/$1-3.delta,set-weights -o ~/out/"$1-3.mtx"
-  log ./a.out rewrite ~/out/"$1.mtx" -t	++$HOME/out/$1+3.delta,set-weights -o ~/out/"$1+3.mtx"
-  log ./a.out rewrite ~/out/"$1.mtx" -t	--$HOME/out/$1-4.delta,set-weights -o ~/out/"$1-4.mtx"
-  log ./a.out rewrite ~/out/"$1.mtx" -t	++$HOME/out/$1+4.delta,set-weights -o ~/out/"$1+4.mtx"
+# generate-apply <graph> <batch_size> <repeat>
+generate-apply() {
+  G="$1"; B="$2"; R="$3"
+  for ((i=0; i<$R; i++)); do
+    log ./a.out rewrite ~/out/"${G}.mtx" -t "--$HOME/out/${G}_$B-$i.delta,set-weights" -o ~/out/"${G}_$B-$i.mtx"
+    log ./a.out rewrite ~/out/"${G}.mtx" -t	"++$HOME/out/${G}_$B+$i.delta,set-weights" -o ~/out/"${G}_$B+$i.mtx"
+    log ./a.out rewrite ~/out/"${G}_$B-$i.mtx" -o ~/out/"${G}_$B-$i.edges"
+    log ./a.out rewrite ~/out/"${G}_$B+$i.mtx" -o ~/out/"${G}_$B+$i.edges"
+  done
 }
 
-generate-apply-edges() {
-  log ./a.out rewrite ~/out/"$1-0.mtx" -o ~/out/"$1-0.edges"
-  log ./a.out rewrite ~/out/"$1+0.mtx" -o ~/out/"$1+0.edges"
-  log ./a.out rewrite ~/out/"$1-1.mtx" -o ~/out/"$1-1.edges"
-  log ./a.out rewrite ~/out/"$1+1.mtx" -o ~/out/"$1+1.edges"
-  log ./a.out rewrite ~/out/"$1-2.mtx" -o ~/out/"$1-2.edges"
-  log ./a.out rewrite ~/out/"$1+2.mtx" -o ~/out/"$1+2.edges"
-  log ./a.out rewrite ~/out/"$1-3.mtx" -o ~/out/"$1-3.edges"
-  log ./a.out rewrite ~/out/"$1+3.mtx" -o ~/out/"$1+3.edges"
-  log ./a.out rewrite ~/out/"$1-4.mtx" -o ~/out/"$1-4.edges"
-  log ./a.out rewrite ~/out/"$1+4.mtx" -o ~/out/"$1+4.edges"
-}
-
+# main <graph>
 main() {
-  generate-apply-edges "$@"
+  log echo "# graph-generate $1"
+  generate-delta "$1" 500   5
+  generate-apply "$1" 500   5
+  generate-delta "$1" 1000  5
+  generate-apply "$1" 1000  5
+  generate-delta "$1" 2000  5
+  generate-apply "$1" 2000  5
+  generate-delta "$1" 5000  5
+  generate-apply "$1" 5000  5
+  generate-delta "$1" 10000 5
+  generate-apply "$1" 10000 5
 }
 
 main web-Stanford
@@ -69,3 +67,15 @@ main italy_osm
 main great-britain_osm
 main germany_osm
 main asia_osm
+
+main arabic-2005
+main uk-2005
+main it-2004
+# main soc-Epinions1
+# main soc-LiveJournal1
+main wiki-Talk
+main cit-Patents
+# main coPapersDBLP
+main amazon-2008
+# main italy_osm
+main Linux_call_graph
