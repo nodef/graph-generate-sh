@@ -36,8 +36,8 @@ generate-apply() {
 }
 
 # main <graph>
-main() {
-  log echo "# graph-generate $1"
+generate-batches() {
+  log echo "# generate-batches $1"
   generate-delta "$1" 500   5
   generate-apply "$1" 500   5
   generate-delta "$1" 1000  5
@@ -48,6 +48,25 @@ main() {
   generate-apply "$1" 5000  5
   generate-delta "$1" 10000 5
   generate-apply "$1" 10000 5
+}
+
+# find-gini-coeff <graph>
+find-gini-coeff() {
+  G="$1"
+  log echo "# find-gini-coeff $1"
+  cp ~/data/"${G}.mtx" ~/out/"${G}.mtx"
+  log nvgraph pagerank ~/out/"${G}.mtx" -o ~/out/"${G}.yaml"
+  rm ~/out/"${G}.mtx"
+  log ./a.out rewrite ~/data/"${G}.mtx" -t "loop-deadends" -o ~/out/"${G}_loop.mtx"
+  log nvgraph pagerank ~/out/"${G}_loop.mtx" -o ~/out/"${G}_loop.yaml"
+  rm ~/out/"${G}_loop.mtx"
+  log ./a.out rewrite ~/data/"${G}.mtx" -t "loop-all" -o ~/out/"${G}_loopall.mtx"
+  log nvgraph pagerank ~/out/"${G}_loopall.mtx" -o ~/out/"${G}_loopall.yaml"
+  rm ~/out/"${G}_loopall.mtx"
+}
+
+main() {
+  find-gini-coeff "$@"
 }
 
 main web-Stanford
