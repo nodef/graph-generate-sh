@@ -66,6 +66,7 @@ auto parseFileFormats(const string& x) {
 // ---------------
 
 string parseGraphTransform(const string& x) {
+  if (x=="transpose"      || x=="reverse")  return "TRANSPOSE";
   if (x=="unsymmetricize" || x=="unsymmetric"  || x=="unsym") return "UNSYMMETRICIZE";
   if (x=="symmetricize"   || x=="symmetric"    || x=="sym")   return "SYMMETRICIZE";
   if (x=="loop-deadends"  || x=="loop")     return "LOOP_DEADENDS";

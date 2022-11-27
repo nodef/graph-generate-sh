@@ -91,6 +91,10 @@ void performTransform(G& a, int& w, string t) {
     processEdges(fs, fe, fc, sym);
     print(a); printf(" (%s)\n", t.c_str());
   }
+  else if (t=="TRANSPOSE") {
+    a = transpose(a);
+    print(a); printf(" (transpose)\n");
+  }
   else if (t=="UNSYMMETRICIZE") {
     a = unsymmetricize(a);
     print(a); printf(" (unsymmetricize)\n");
