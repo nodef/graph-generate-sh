@@ -5,7 +5,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstdlib>
-#include "src/main.hxx"
+#include "inc/main.hxx"
 #include "options.hxx"
 
 using namespace std;
