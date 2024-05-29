@@ -1,177 +1,184 @@
 #pragma once
 #include <string>
-#include <vector>
+#include <string_view>
+#include <unordered_map>
 
 using std::string;
-using std::vector;
-using std::stoi;
+using std::string_view;
+using std::unordered_map;
 
 
 
 
-// COMMAND
-// -------
+#pragma region OPTIONS
+/**
+ * @brief
+ * The dynamic graphs are generated in batch updates of specified size B,
+ * either in absolute terms, or in terms of the number of edges of the
+ * original graphs (like 0.001|E|). The generator should accept as parameter
+ * the mix of edge deletions and insertions, mix of vertex deletions and
+ * insertions (and at what rate the vertices increase/scale), whether
+ * duplicate edge deletions/insertions appear in the batch update, the
+ * nature of the batch update (uniformly random, preferential attachment,
+ * planted partition model, ..., match the nature of the graph), and the
+ * set of constraints to be satisfied (limit min/max degree, maintain degree
+ * distribution, maintain community structures, k-core, diameter, ...).
+ * Further, in addition to generating batch updates from the base static
+ * graphs (single-batch update), it should be able to generate multi-batch
+ * updates, where each batch update comes one after the other (in a sequence)
+ * to form a sequence of graphs that represent the dynamic graph.
+ */
 
-enum class Command {
-  UNKNOWN,
-  DELTA,
-  REWRITE,
-};
 
-auto parseCommand(const string& x) {
-  typedef Command C;
-  if (x=="delta"   || x=="batch")  return C::DELTA;
-  if (x=="rewrite" || x=="recast") return C::REWRITE;
-  return C::UNKNOWN;
+/** Command-line options for the program. */
+typedef unordered_map<string, string> Options;
+
+
+/**
+ * Check if a string is a boolean.
+ * @param x string to check
+ * @returns true if the string is a boolean, false otherwise
+ */
+inline bool isBool(string_view x) {
+  return x=="0" || x=="1" || x=="true" || x=="false";
 }
 
 
-
-
-// FILE FORMAT
-// -----------
-
-enum class FileFormat {
-  UNKNOWN,
-  FIXED_EDGES,
-  FIXED_MTX,
-  TEMPORAL_TXT
-};
-
-auto parseFileFormat(const string& x) {
-  typedef FileFormat F;
-  if (x=="fixed-edgelist" || x=="edgelist"      || x=="edges" || x==".edges") return F::FIXED_EDGES;
-  if (x=="fixed-mtx"      || x=="matrix-market" || x=="mtx"   || x==".mtx")   return F::FIXED_MTX;
-  if (x=="temporal-txt"   || x=="temporal"      || x=="txt"   || x==".txt")   return F::TEMPORAL_TXT;
-  return F::UNKNOWN;
-}
-
-auto parseFileFormats(const string& x) {
-  typedef FileFormat F; vector<F> a;
-  string y = removeAll(x, ' ');
-  for (size_t i=0; i<y.length();) {
-    size_t p = y.find_first_of(',', i);
-    if (p==string::npos) p = y.length();
-    string f = y.substr(i, p-i);
-    a.push_back(parseFileFormat(f));
-    i = p+1;
-  }
-  return a;
+/**
+ * Check if a string is an integer.
+ * @param x string to check
+ * @returns true if the string is an integer, false otherwise
+ */
+inline bool isInt(string_view x) {
+  char *end;
+  strtol(x.data(), &end, 10);
+  return end == x.data() + x.size();
 }
 
 
-
-
-// GRAPH TRANSFORM
-// ---------------
-
-string parseGraphTransform(const string& x) {
-  if (x=="transpose"      || x=="reverse")  return "TRANSPOSE";
-  if (x=="unsymmetricize" || x=="unsymmetric"  || x=="unsym") return "UNSYMMETRICIZE";
-  if (x=="symmetricize"   || x=="symmetric"    || x=="sym")   return "SYMMETRICIZE";
-  if (x=="loop-deadends"  || x=="loop")     return "LOOP_DEADENDS";
-  if (x=="loop-vertices"  || x=="loop-all") return "LOOP_VERTICES";
-  if (x=="clear-weights"  || x=="zero-weights" || x=="no-weights"     || x=="weights=0") return "CLEAR_WEIGHTS";
-  if (x=="set-weights"    || x=="unit-weights" || x=="common-weights" || x=="weights=1") return "SET_WEIGHTS";
-  return x[0]=='+' || x[0]=='-'? x : "UNKNOWN";
-}
-
-auto parseGraphTransforms(const string& x) {
-  vector<string> a;
-  string y = removeAll(x, ' ');
-  for (size_t i=0; i<y.length();) {
-    size_t p = y.find_first_of(',', i);
-    if (p==string::npos) p = y.length();
-    string t = y.substr(i, p-i);
-    a.push_back(parseGraphTransform(t));
-    i = p+1;
-  }
-  return a;
+/**
+ * Check if a string is a double.
+ * @param x string to check
+ * @returns true if the string is a double, false otherwise
+ */
+inline bool isDouble(string_view x) {
+  char *end;
+  strtod(x.data(), &end);
+  return end == x.data() + x.size();
 }
 
 
-
-
-// OPTIONS
-// -------
-
-struct Options {
-  private:
-  typedef Command        C;
-  typedef FileFormat     F;
-  public:
-  bool   help    = false;
-  string error   = "";
-  string input   = "";
-  string output  = "";
-  string commandStr    = "";
-  string formatsStr    = "";
-  string transformsStr = "";
-  string samplesStr    = "";
-  string countStr      = "";
-  vector<string> transforms {};
-  vector<F> formats {};
-  C command   = C::UNKNOWN;
-  int samples = 0;
-  int count   = 1;
-};
-
-
-
-
-string pathExtname(const string& path) {
-  auto idx = path.rfind('.');
+/**
+ * Extract the extension from a path.
+ * @param path path to extract extension from
+ * @returns extension of the path
+ */
+inline string_view pathExtname(string_view path) {
+  auto   idx = path.rfind('.');
   return idx==string::npos? "" : path.substr(idx);
 }
 
 
-Options readOptions(int argc, char **argv) {
-  typedef Command        C;
-  typedef FileFormat     F;
-  Options a;
+/**
+ * Read the command line options, and fill in default values.
+ * @param argc number of arguments
+ * @param argv array of arguments
+ * @returns the options
+ */
+inline Options readOptions(int argc, char **argv) {
+  Options o;
   for (int i=1; i<argc; ++i) {
     string k = argv[i];
-    if (k=="--help") a.help = true;
-    else if (k=="-f" || k=="--format"    || k=="--formats")    a.formatsStr    = argv[++i];
-    else if (k=="-t" || k=="--transform" || k=="--transforms") a.transformsStr = argv[++i];
-    else if (k=="-s" || k=="--samples") a.samplesStr = argv[++i];
-    else if (k=="-c" || k=="--count")   a.countStr   = argv[++i];
-    else if (k=="-i" || k=="--input")   a.input  = argv[++i];
-    else if (k=="-o" || k=="--output")  a.output = argv[++i];
-    else if (k[0]=='-')            { a.error      = "\'"+k+"\' is not an option";          break; }
-    else if (a.commandStr.empty()) { a.commandStr = argv[i]; }
-    else if (!a.input.empty())     { a.error      = "\'"+k+"\' file cannot be read as well"; break; }
-    else a.input = argv[i];
+    if (k=="--help") o["help"] = "1";
+    else if (k=="--input-graph")     o["input-graph"]     = argv[++i];
+    else if (k=="--input-format")    o["input-format"]    = argv[++i];
+    else if (k=="--input-transform") o["input-transform"] = argv[++i];
+    else if (k=="--output-dir")      o["output-dir"]    = argv[++i];
+    else if (k=="--output-prefix")   o["output-prefix"] = argv[++i];
+    else if (k=="--output-format")   o["output-format"] = argv[++i];
+    else if (k=="--batch-size")       o["batch-size"]       = argv[++i];
+    else if (k=="--batch-size-ratio") o["batch-size-ratio"] = argv[++i];
+    else if (k=="--edge-insertions")  o["edge-insertions"]  = argv[++i];
+    else if (k=="--edge-deletions")   o["edge-deletions"]   = argv[++i];
+    else if (k=="--allow-duplicate-edges") o["allow-duplicate-edges"] = "1";
+    else if (k=="--vertex-insertions")     o["vertex-insertions"]  = argv[++i];
+    else if (k=="--vertex-deletions")      o["vertex-deletions"]   = argv[++i];
+    else if (k=="--vertex-growth-rate")    o["vertex-growth-rate"] = argv[++i];
+    else if (k=="--allow-duplicate-vertices") o["allow-duplicate-vertices"] = "1";
+    else if (k=="--update-nature") o["update-nature"] = argv[++i];
+    else if (k=="--min-degree")    o["min-degree"]    = argv[++i];
+    else if (k=="--max-degree")    o["max-degree"]    = argv[++i];
+    else if (k=="--max-diameter")  o["max-diameter"]  = argv[++i];
+    else if (k=="--preserve-degree-distribution") o["preserve-degree-distribution"] = "1";
+    else if (k=="--preserve-communities")         o["preserve-communities"] = "1";
+    else if (k=="--preserve-k-core")              o["preserve-k-core"] = argv[++i];
+    else if (k=="--multi-batch") o["multi-batch"] = argv[++i];
+    else if (k=="--seed") o["seed"] = argv[++i];
   }
-  a.command = parseCommand(a.commandStr);
-  if (a.command==C::UNKNOWN) { a.error = "no command specified"; return a; }
-  if (a.input.empty()) { a.error = "no input file specified"; return a; }
-  a.formats = parseFileFormats(a.formatsStr);
-  for (F f : a.formats)
-    if (f==F::UNKNOWN) { a.error = "\'"+a.formatsStr +"\' format is not recognized"; return a; }
-  if (a.formats.size()<1) a.formats.push_back(parseFileFormat(pathExtname(a.input)));
-  if (a.formats.size()<2) a.formats.push_back(parseFileFormat(pathExtname(a.output)));
-  if (a.formats[0]==F::UNKNOWN) { a.error = "unknown input format"; return a; }
-  if (a.formats[1]==F::UNKNOWN && !a.output.empty() && a.command==C::REWRITE) { a.error = "unknown output format"; return a; }
-  a.transforms = parseGraphTransforms(a.transformsStr);
-  for (const string& t : a.transforms)
-    if (t=="UNKNOWN") { a.error = "\'"+a.transformsStr +"\' transform is not recognized"; return a; }
-  try { if (!a.samplesStr.empty()) a.samples = stoi(a.samplesStr); }
-  catch (...) { a.error = "\'"+a.samplesStr+"\' samples is not an integer"; return a; }
-  try { if (!a.countStr.empty()) a.count = stoi(a.countStr); }
-  catch (...) { a.error = "\'"+a.countStr+"\' count is not an integer"; return a; }
-  if (a.samples<0) { a.error = "\'"+a.samplesStr+  "\' samples must be positive"; return a; }
-  if (a.count<0)   { a.error = "\'"+a.countStr+    "\' count must be positive"; return a; }
-  return a;
+  return o;
 }
+#pragma endregion
 
 
 
 
-// HELP
-// ----
-
-const char* helpMessage() {
-  return "For usage details, please try the following URL:\n"
-  "https://github.com/puzzlef/graph-generate";
+#pragma region HELP
+/**
+ * Maybe the user needs help.
+ * @returns something helpful
+ */
+inline const char* helpMessage() {
+  // Input formats: edgelist,matrix-market,snap-temporal
+  // Input transforms: transpose,unsymmetrize,symmetrize,loop-deadends,loop-vertices,clear-weights,set-weights
+  // Output formats: edgelist
+  const char *message =
+  "Usage: graph-generate [OPTIONS]\n"
+  "\n"
+  "Options:\n"
+  "  --input-graph <file>           Path to the input static graph file.\n"
+  "  --input-format <format>        Format of the input static graph file.\n"
+  "  --input-transform <transforms> Transformations to apply to the input graph.\n"
+  "  --output-dir <directory>       Directory to save the generated dynamic graphs.\n"
+  "  --output-prefix <prefix>       Prefix for the generated dynamic graph files.\n"
+  "  --output-format <format>       Format of the generated batch updates.\n"
+  "\n"
+  "Batch Size:\n"
+  "  --batch-size <size>           Absolute size of each batch update.\n"
+  "  --batch-size-ratio <ratio>    Size of each batch update as a fraction of the total edges (e.g., 0.001).\n"
+  "\n"
+  "Edge Operations:\n"
+  "  --edge-insertions <percentage>   Percentage of edge insertions in each batch.\n"
+  "  --edge-deletions <percentage>    Percentage of edge deletions in each batch.\n"
+  "  --allow-duplicate-edges          Allow duplicate edge operations within a batch.\n"
+  "\n"
+  "Vertex Operations:\n"
+  "  --vertex-insertions <percentage> Percentage of vertex insertions in each batch.\n"
+  "  --vertex-deletions <percentage>  Percentage of vertex deletions in each batch.\n"
+  "  --vertex-growth-rate <rate>      Rate at which the number of vertices increases.\n"
+  "  --allow-duplicate-vertices       Allow duplicate vertex operations within a batch.\n"
+  "\n"
+  "Batch Update Nature:\n"
+  "  --update-nature <nature>         Nature of the batch updates. Options:\n"
+  "                                   uniform: Uniformly random updates.\n"
+  "                                   preferential: Preferential attachment model.\n"
+  "                                   planted: Planted partition model.\n"
+  "                                   match: Match the nature of the original graph.\n"
+  "\n"
+  "Constraints:\n"
+  "  --min-degree <degree>            Minimum degree constraint for the graph.\n"
+  "  --max-degree <degree>            Maximum degree constraint for the graph.\n"
+  "  --max-diameter <diameter>        Ensure the diameter of the graph does not exceed the specified value.\n"
+  "  --preserve-degree-distribution   Ensure the degree distribution is maintained.\n"
+  "  --preserve-communities           Preserve community structures.\n"
+  "  --preserve-k-core <k>            Ensure the graph maintains a k-core structure.\n"
+  "\n"
+  "Multi-Batch Updates:\n"
+  "  --multi-batch <num>              Number of contiguous batch updates to generate.\n"
+  "\n"
+  "Miscellaneous:\n"
+  "  --seed <seed>                    Seed for random number generator (for reproducibility).\n"
+  "  --help                           Display this help and exit.\n"
+  "\n";
+  return message;
 }
+#pragma endregion
