@@ -18,7 +18,7 @@ using namespace std;
  */
 int main(int argc, char **argv) {
   Options o = readOptions(argc, argv);
-  printf("%s\n", helpMessage());
+  handleOptions(o);
   return 0;
 }
 #pragma endregion

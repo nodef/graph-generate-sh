@@ -1,6 +1,7 @@
 #include <tuple>
 #include <vector>
 #include <random>
+#include <numeric>
 #include <algorithm>
 #include "_main.hxx"
 #include "update.hxx"
@@ -8,10 +9,14 @@
 using std::tuple;
 using std::vector;
 using std::uniform_real_distribution;
+using std::uniform_int_distribution;
+using std::discrete_distribution;
 using std::make_tuple;
 using std::sort;
 using std::unique;
 using std::remove_if;
+using std::exp;
+using std::log;
 
 
 
@@ -248,4 +253,85 @@ inline void applyBatchUpdateOmpU(G& a, const vector<tuple<K, K, V>>& deletions, 
 }
 #endif
 #pragma endregion
+#pragma endregion
+
+
+#pragma region UNIFORM
+
+/**
+ * Uniformly update a graph.
+ * @param rng random number generator 
+ * @param graph graph to update
+ * @param batchSize number of edges to update
+ * @param edgeInsertions fraction of edges to insert
+ * @param edgeDeletions fraction of edges to delete
+ * @param insertions edge insertions in batch update 
+ * @param deletions edge deletions in batch update 
+ * @param allowDuplicateEdges allow duplicate edges in batch?
+*/
+template <class R, class G>
+void uniformUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, std::vector<std::tuple<typename G::key_type, typename G::key_type, typename G::edge_value_type>>& insertions, std::vector<std::tuple<typename G::key_type, typename G::key_type, typename G::edge_value_type>>& deletions, bool allowDuplicateEdges) {
+    using K = typename G::key_type;
+    using V = typename G::edge_value_type;
+    size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
+    deletions = generateEdgeDeletions(rng, graph, numDeletions, 1, graph.order(), false);
+    size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
+    insertions = generateEdgeInsertions(rng, graph, numInsertions, 1, graph.order(), false, V());
+    if (!allowDuplicateEdges) tidyBatchUpdateU(deletions, insertions, graph);
+}
+
+#pragma endregion
+
+
+#pragma region PREFERENTIAL
+
+/** 
+ * Preferential attachment/detachment to update a graph.
+ * @param rng random number generator 
+ * @param graph graph to update
+ * @param batchSize number of edges to update
+ * @param edgeInsertions fraction of edges to insert
+ * @param edgeDeletions fraction of edges to delete
+ * @param insertions edge insertions in batch update 
+ * @param deletions edge deletions in batch update 
+ * @param allowDuplicateEdges allow duplicate edges in batch?
+
+*/
+template <class R, class G>
+void preferentialUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<typename G::key_type, typename G::key_type, typename G::edge_value_type>>& insertions, vector<tuple<typename G::key_type, typename G::key_type, typename G::edge_value_type>>& deletions, bool allowDuplicateEdges) {
+    using K = typename G::key_type;
+    using V = typename G::edge_value_type;
+    size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
+    size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
+    auto getInDegree = [&](K u) {
+        size_t degree = 0;
+        graph.forEachVertexKey([&](K v) {if (graph.hasEdge(v, u)) degree++;});
+        return degree;
+    };
+    double beta = 1.0;
+    double lambda = 0.0;
+    vector<double> inDegreeWeights;
+    double totalInDegree = 0;
+    graph.forEachVertexKey([&](K u) {
+        double degree = getInDegree(u);
+        inDegreeWeights.push_back(exp(beta * log(1 + degree)) - lambda);
+        totalInDegree += degree;
+    });
+    uniform_int_distribution<K> sourceDistribution(1, graph.order());
+    discrete_distribution<K> targetDistribution(inDegreeWeights.begin(), inDegreeWeights.end());
+    for (size_t i = 0; i < numDeletions; i++) {
+        K u = sourceDistribution(rng);
+        K v = targetDistribution(rng)+1;
+        if (graph.hasEdge(u, v)) {
+            V weight = graph.edgeValue(u, v);
+            deletions.emplace_back(u, v, weight);
+        }
+    }
+    for (size_t i = 0; i < numInsertions; i++) {
+        K u = sourceDistribution(rng);
+        K v = targetDistribution(rng)+1;
+        if (!graph.hasEdge(u, v)) insertions.emplace_back(u, v, V());
+    }
+  if(!allowDuplicateEdges) tidyBatchUpdateU(deletions, insertions, graph);
+}
 #pragma endregion
