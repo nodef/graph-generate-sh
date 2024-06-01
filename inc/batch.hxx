@@ -269,10 +269,8 @@ inline void applyBatchUpdateOmpU(G& a, const vector<tuple<K, K, V>>& deletions, 
  * @param deletions edge deletions in batch update 
  * @param allowDuplicateEdges allow duplicate edges in batch?
 */
-template <class R, class G>
-void uniformUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, std::vector<std::tuple<typename G::key_type, typename G::key_type, typename G::edge_value_type>>& insertions, std::vector<std::tuple<typename G::key_type, typename G::key_type, typename G::edge_value_type>>& deletions, bool allowDuplicateEdges) {
-    using K = typename G::key_type;
-    using V = typename G::edge_value_type;
+template <class R, class G, typename K, typename V>
+void uniformUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges) {
     size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
     deletions = generateEdgeDeletions(rng, graph, numDeletions, 1, graph.order(), false);
     size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
@@ -297,41 +295,39 @@ void uniformUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, do
  * @param allowDuplicateEdges allow duplicate edges in batch?
 
 */
-template <class R, class G>
-void preferentialUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<typename G::key_type, typename G::key_type, typename G::edge_value_type>>& insertions, vector<tuple<typename G::key_type, typename G::key_type, typename G::edge_value_type>>& deletions, bool allowDuplicateEdges) {
-    using K = typename G::key_type;
-    using V = typename G::edge_value_type;
-    size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
-    size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
-    auto getInDegree = [&](K u) {
-        size_t degree = 0;
-        graph.forEachVertexKey([&](K v) {if (graph.hasEdge(v, u)) degree++;});
-        return degree;
-    };
-    double beta = 1.0;
-    double lambda = 0.0;
-    vector<double> inDegreeWeights;
-    double totalInDegree = 0;
-    graph.forEachVertexKey([&](K u) {
-        double degree = getInDegree(u);
-        inDegreeWeights.push_back(exp(beta * log(1 + degree)) - lambda);
-        totalInDegree += degree;
+template <class R, class G, typename K, typename V>
+void preferentialUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges) {
+  size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
+  size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
+  vector<int> inDegrees(graph.order(), 0);
+  graph.forEachVertexKey([&](K u) {
+    graph.forEachEdge(u, [&](K v, V w) {
+      inDegrees[v - 1]++;
     });
-    uniform_int_distribution<K> sourceDistribution(1, graph.order());
-    discrete_distribution<K> targetDistribution(inDegreeWeights.begin(), inDegreeWeights.end());
-    for (size_t i = 0; i < numDeletions; i++) {
-        K u = sourceDistribution(rng);
-        K v = targetDistribution(rng)+1;
-        if (graph.hasEdge(u, v)) {
-            V weight = graph.edgeValue(u, v);
-            deletions.emplace_back(u, v, weight);
-        }
+  });
+  double beta = 1.0;
+  double lambda = 0.0;
+  vector<double> inDegreeWeights;
+  double totalInDegree = 0;
+  graph.forEachVertexKey([&](K u) {
+    inDegreeWeights.push_back(exp(beta * log(1 + inDegrees[u-1])) - lambda);
+    totalInDegree += inDegrees[u-1];
+  });
+  uniform_int_distribution<K> sourceDistribution(1, graph.order());
+  discrete_distribution<K> targetDistribution(inDegreeWeights.begin(), inDegreeWeights.end());
+  for (size_t i = 0; i < numDeletions; i++) {
+    K u = sourceDistribution(rng);
+    K v = targetDistribution(rng)+1;
+    if (graph.hasEdge(u, v)) {
+      V weight = graph.edgeValue(u, v);
+      deletions.emplace_back(u, v, weight);
     }
-    for (size_t i = 0; i < numInsertions; i++) {
-        K u = sourceDistribution(rng);
-        K v = targetDistribution(rng)+1;
-        if (!graph.hasEdge(u, v)) insertions.emplace_back(u, v, V());
-    }
+  }
+  for (size_t i = 0; i < numInsertions; i++) {
+    K u = sourceDistribution(rng);
+    K v = targetDistribution(rng)+1;
+    if (!graph.hasEdge(u, v)) insertions.emplace_back(u, v, V());
+  }
   if(!allowDuplicateEdges) tidyBatchUpdateU(deletions, insertions, graph);
 }
 #pragma endregion
