@@ -37,8 +37,10 @@ using std::mt19937_64;
 
 
 /** Command-line options for the program. */
-typedef unordered_map<string, string> Options;
-
+struct Options {
+  unordered_map<string, string> params;
+  vector<string> transforms;
+};
 
 /**
  * Check if a string is a boolean.
@@ -95,31 +97,31 @@ inline Options readOptions(int argc, char **argv) {
   Options o;
   for (int i=1; i<argc; ++i) {
     string k = argv[i];
-    if (k=="--help") o["help"] = "1";
-    else if (k=="--input-graph")     o["input-graph"]     = argv[++i];
-    else if (k=="--input-format")    o["input-format"]    = argv[++i];
-    else if (k=="--input-transform") o["input-transform"] = argv[++i];
-    else if (k=="--output-dir")      o["output-dir"]    = argv[++i];
-    else if (k=="--output-prefix")   o["output-prefix"] = argv[++i];
-    else if (k=="--output-format")   o["output-format"] = argv[++i];
-    else if (k=="--batch-size")       o["batch-size"]       = argv[++i];
-    else if (k=="--batch-size-ratio") o["batch-size-ratio"] = argv[++i];
-    else if (k=="--edge-insertions")  o["edge-insertions"]  = argv[++i];
-    else if (k=="--edge-deletions")   o["edge-deletions"]   = argv[++i];
-    else if (k=="--allow-duplicate-edges") o["allow-duplicate-edges"] = "1";
-    else if (k=="--vertex-insertions")     o["vertex-insertions"]  = argv[++i];
-    else if (k=="--vertex-deletions")      o["vertex-deletions"]   = argv[++i];
-    else if (k=="--vertex-growth-rate")    o["vertex-growth-rate"] = argv[++i];
-    else if (k=="--allow-duplicate-vertices") o["allow-duplicate-vertices"] = "1";
-    else if (k=="--update-nature") o["update-nature"] = argv[++i];
-    else if (k=="--min-degree")    o["min-degree"]    = argv[++i];
-    else if (k=="--max-degree")    o["max-degree"]    = argv[++i];
-    else if (k=="--max-diameter")  o["max-diameter"]  = argv[++i];
-    else if (k=="--preserve-degree-distribution") o["preserve-degree-distribution"] = "1";
-    else if (k=="--preserve-communities")         o["preserve-communities"] = "1";
-    else if (k=="--preserve-k-core")              o["preserve-k-core"] = argv[++i];
-    else if (k=="--multi-batch") o["multi-batch"] = argv[++i];
-    else if (k=="--seed") o["seed"] = argv[++i];
+    if (k=="--help") o.params["help"] = "1";
+    else if (k=="--input-graph")     o.params["input-graph"]     = argv[++i];
+    else if (k=="--input-format")    o.params["input-format"]    = argv[++i];
+    else if (k=="--input-transform"){ while (i+1<argc && argv[i+1][0]!='-') o.transforms.push_back(argv[++i]);}
+    else if (k=="--output-dir")      o.params["output-dir"]    = argv[++i];
+    else if (k=="--output-prefix")   o.params["output-prefix"] = argv[++i];
+    else if (k=="--output-format")   o.params["output-format"] = argv[++i];
+    else if (k=="--batch-size")       o.params["batch-size"]       = argv[++i];
+    else if (k=="--batch-size-ratio") o.params["batch-size-ratio"] = argv[++i];
+    else if (k=="--edge-insertions")  o.params["edge-insertions"]  = argv[++i];
+    else if (k=="--edge-deletions")   o.params["edge-deletions"]   = argv[++i];
+    else if (k=="--allow-duplicate-edges") o.params["allow-duplicate-edges"] = "1";
+    else if (k=="--vertex-insertions")     o.params["vertex-insertions"]  = argv[++i];
+    else if (k=="--vertex-deletions")      o.params["vertex-deletions"]   = argv[++i];
+    else if (k=="--vertex-growth-rate")    o.params["vertex-growth-rate"] = argv[++i];
+    else if (k=="--allow-duplicate-vertices") o.params["allow-duplicate-vertices"] = "1";
+    else if (k=="--update-nature") o.params["update-nature"] = argv[++i];
+    else if (k=="--min-degree")    o.params["min-degree"]    = argv[++i];
+    else if (k=="--max-degree")    o.params["max-degree"]    = argv[++i];
+    else if (k=="--max-diameter")  o.params["max-diameter"]  = argv[++i];
+    else if (k=="--preserve-degree-distribution") o.params["preserve-degree-distribution"] = "1";
+    else if (k=="--preserve-communities")         o.params["preserve-communities"] = "1";
+    else if (k=="--preserve-k-core")              o.params["preserve-k-core"] = argv[++i];
+    else if (k=="--multi-batch") o.params["multi-batch"] = argv[++i];
+    else if (k=="--seed") o.params["seed"] = argv[++i];
   }
   return o;
 }

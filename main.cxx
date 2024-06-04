@@ -31,6 +31,19 @@ void checkInputFile(const string& inputGraph) {
 * @param inputGraph The path to the input graph file.
 * @throws runtime_error if the input format is unknown.
 */
+#ifdef OPENMP
+void handleInputFormat(const string& inputFormat, DiGraph<int, int, int>& graph, const string& inputGraph) {
+  if (inputFormat == "matrix-market") {
+    readMtxOmpW(graph, inputGraph.c_str());
+  } else if (inputFormat == "edgelist") {
+    // handle edgelist format
+  } else if (inputFormat == "snap-temporal"){
+    // handle snap-temporal format
+  } else {
+    throw runtime_error("Unknown input format: " + inputFormat);
+  }
+}
+#else
 void handleInputFormat(const string& inputFormat, DiGraph<int, int, int>& graph, const string& inputGraph) {
   if (inputFormat == "matrix-market") {
     readMtxW(graph, inputGraph.c_str());
@@ -42,6 +55,7 @@ void handleInputFormat(const string& inputFormat, DiGraph<int, int, int>& graph,
     throw runtime_error("Unknown input format: " + inputFormat);
   }
 }
+#endif
 
 /**
 * @brief Handle the input transformation (transpose,unsymmetrize,symmetrize,loop-deadends,loop-vertices,clear-weights,set-weights) for the graph.
@@ -49,6 +63,29 @@ void handleInputFormat(const string& inputFormat, DiGraph<int, int, int>& graph,
 * @param graph The graph object to be transformed.
 * @throws runtime_error if the input transformation is unknown.
 */
+
+#ifdef OPENMP
+void handleInputTransform(const string& inputTransform, DiGraph<int, int, int>& graph) {
+  if (inputTransform == "");
+  else if (inputTransform == "transpose") {
+    graph = transposeOmp(graph);
+  } else if (inputTransform == "symmetrize") {
+    graph = symmetrizeOmp(graph);
+  } else if (inputTransform == "unsymmetrize") {
+    // graph = unsymmetrize(graph);
+  } else if (inputTransform == "loop-deadends") {
+    // graph = loopDeadends(graph);
+  } else if (inputTransform == "loop-vertices") {
+    // graph = loopVertices(graph);
+  } else if (inputTransform == "clear-weights") {
+    // graph = clearWeights(graph);
+  } else if (inputTransform == "set-weights") {
+    // graph = setWeights(graph);
+  } else {
+    throw runtime_error("Unknown input transform: " + inputTransform);
+  }
+}
+#else
 void handleInputTransform(const string& inputTransform, DiGraph<int, int, int>& graph) {
   if (inputTransform == "");
   else if (inputTransform == "transpose") {
@@ -69,6 +106,7 @@ void handleInputTransform(const string& inputTransform, DiGraph<int, int, int>& 
     throw runtime_error("Unknown input transform: " + inputTransform);
   }
 }
+#endif
 
 /**
 * @brief Create an output file with a specified prefix and counter.
@@ -151,49 +189,54 @@ void handleUpdateNature(const string& updateNature, DiGraph<int, int, int>& grap
  * @param options A map containing the options and their corresponding values.
  */
 void handleOptions(const Options& options) {
-  if (options.count("help")) {
+  auto startTime = timeNow();
+  if (options.params.count("help")) {
     cout << helpMessage();
     return;
   }
-  string inputGraph = options.count("input-graph") ? options.at("input-graph") : "";
-  string inputFormat = options.count("input-format") ? options.at("input-format") : "";
-  string inputTransform = options.count("input-transform") ? options.at("input-transform") : "";
-  string outputDir = options.count("output-dir") ? options.at("output-dir") : "";
-  string outputPrefix = options.count("output-prefix") ? options.at("output-prefix") : "";
-  string outputFormat = options.count("output-format") ? options.at("output-format") : string("edgelist");
-  int64_t batchSize = options.count("batch-size") ? stoll(options.at("batch-size")) : 0;
-  double batchSizeRatio = options.count("batch-size-ratio") ? stod(options.at("batch-size-ratio")) : 0.0;
-  double edgeInsertions = options.count("edge-insertions") ? stod(options.at("edge-insertions")) : 0.0;
-  double edgeDeletions = options.count("edge-deletions") ? stod(options.at("edge-deletions")) : 0.0;
-  bool allowDuplicateEdges = options.count("allow-duplicate-edges");
-  double vertexInsertions = options.count("vertex-insertions") ? stod(options.at("vertex-insertions")) : 0.0;
-  double vertexDeletions = options.count("vertex-deletions") ? stod(options.at("vertex-deletions")) : 0.0;
-  double vertexGrowthRate = options.count("vertex-growth-rate") ? stod(options.at("vertex-growth-rate")) : 0.0;
-  bool allowDuplicateVertices = options.count("allow-duplicate-vertices");
-  string updateNature = options.count("update-nature") ? options.at("update-nature") : string("uniform");
-  int64_t minDegree = options.count("min-degree") ? stoll(options.at("min-degree")) : 0;
-  int64_t maxDegree = options.count("max-degree") ? stoll(options.at("max-degree")) : 0;
-  int64_t maxDiameter = options.count("max-diameter") ? stoll(options.at("max-diameter")) : 0;
-  bool preserveDegreeDistribution = options.count("preserve-degree-distribution");
-  bool preserveCommunities = options.count("preserve-communities");
-  int64_t preserveKCore = options.count("preserve-k-core") ? stoll(options.at("preserve-k-core")) : 0;
-  int64_t multiBatch = options.count("multi-batch") ? stoll(options.at("multi-batch")) : 1;
+  vector<string> inputTransform = options.transforms;
+  string inputGraph = options.params.count("input-graph") ? options.params.at("input-graph") : "";
+  string inputFormat = options.params.count("input-format") ? options.params.at("input-format") : "";
+  string outputDir = options.params.count("output-dir") ? options.params.at("output-dir") : "";
+  string outputPrefix = options.params.count("output-prefix") ? options.params.at("output-prefix") : "";
+  string outputFormat = options.params.count("output-format") ? options.params.at("output-format") : string("edgelist");
+  int64_t batchSize = options.params.count("batch-size") ? stoll(options.params.at("batch-size")) : 0;
+  double batchSizeRatio = options.params.count("batch-size-ratio") ? stod(options.params.at("batch-size-ratio")) : 0.0;
+  double edgeInsertions = options.params.count("edge-insertions") ? stod(options.params.at("edge-insertions")) : 0.0;
+  double edgeDeletions = options.params.count("edge-deletions") ? stod(options.params.at("edge-deletions")) : 0.0;
+  bool allowDuplicateEdges = options.params.count("allow-duplicate-edges");
+  double vertexInsertions = options.params.count("vertex-insertions") ? stod(options.params.at("vertex-insertions")) : 0.0;
+  double vertexDeletions = options.params.count("vertex-deletions") ? stod(options.params.at("vertex-deletions")) : 0.0;
+  double vertexGrowthRate = options.params.count("vertex-growth-rate") ? stod(options.params.at("vertex-growth-rate")) : 0.0;
+  bool allowDuplicateVertices = options.params.count("allow-duplicate-vertices");
+  string updateNature = options.params.count("update-nature") ? options.params.at("update-nature") : string("uniform");
+  int64_t minDegree = options.params.count("min-degree") ? stoll(options.params.at("min-degree")) : 0;
+  int64_t maxDegree = options.params.count("max-degree") ? stoll(options.params.at("max-degree")) : 0;
+  int64_t maxDiameter = options.params.count("max-diameter") ? stoll(options.params.at("max-diameter")) : 0;
+  bool preserveDegreeDistribution = options.params.count("preserve-degree-distribution");
+  bool preserveCommunities = options.params.count("preserve-communities");
+  int64_t preserveKCore = options.params.count("preserve-k-core") ? stoll(options.params.at("preserve-k-core")) : 0;
+  int64_t multiBatch = options.params.count("multi-batch") ? stoll(options.params.at("multi-batch")) : 1;
   random_device rd;
-  int64_t seed = options.count("seed") ? stoll(options.at("seed")) : rd();
+  int64_t seed = options.params.count("seed") ? stoll(options.params.at("seed")) : rd();
   DiGraph<int, int, int> graph;
   checkInputFile(inputGraph);
   handleInputFormat(inputFormat, graph, inputGraph);
-  handleInputTransform(inputTransform, graph);
+  printf("Read graph: %.3f seconds\n", duration(startTime) / 1000.0);
+  for(int i=0; i<inputTransform.size(); i++) {
+    handleInputTransform(inputTransform[i], graph);
+    printf("Perform transform %s: %.3f seconds\n", inputTransform[i].c_str(), duration(startTime) / 1000.0);
+  }
   int counter = 0;
   ofstream outputFile;
-  createOutputFile(outputDir, outputPrefix, counter, outputFile);
-  writeOutput(outputFile, graph);
   mt19937_64 rng(seed);
   while (multiBatch--) {
     if (batchSize == 0) batchSize = graph.size() * batchSizeRatio;
     handleUpdateNature(updateNature, graph, rng, batchSize, edgeDeletions, edgeInsertions, allowDuplicateEdges);
+    printf("Perform batch update %d: %.3f seconds\n", counter+1, duration(startTime) / 1000.0);
     createOutputFile(outputDir, outputPrefix, ++counter, outputFile);
     writeOutput(outputFile, graph);
+    printf("Write batch update %d: %.3f seconds\n", counter, duration(startTime) / 1000.0);
   }
 }
 #pragma endregion
