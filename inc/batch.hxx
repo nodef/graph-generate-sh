@@ -5,18 +5,21 @@
 #include <algorithm>
 #include "_main.hxx"
 #include "update.hxx"
+#include "muParser.h"
 
 using std::tuple;
 using std::vector;
 using std::uniform_real_distribution;
 using std::uniform_int_distribution;
 using std::discrete_distribution;
+using std::runtime_error;
 using std::make_tuple;
 using std::sort;
 using std::unique;
 using std::remove_if;
 using std::exp;
 using std::log;
+using mu::Parser;
 
 
 
@@ -330,4 +333,57 @@ void preferentialUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertion
   }
   if(!allowDuplicateEdges) tidyBatchUpdateU(deletions, insertions, graph);
 }
+#pragma endregion
+
+#pragma region CUSTOM
+
+/** 
+ * Custom probability distribution to update a graph.
+ * @param probabilityDistribution probability distribution function
+ * @param rng random number generator 
+ * @param graph graph to update
+ * @param batchSize number of edges to update
+ * @param edgeInsertions fraction of edges to insert
+ * @param edgeDeletions fraction of edges to delete
+ * @param insertions edge insertions in batch update 
+ * @param deletions edge deletions in batch update 
+ * @param allowDuplicateEdges allow duplicate edges in batch?
+*/
+template <class R, class G, typename K, typename V>
+void customUpdate(const string& probabilityDistribution, R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges) {
+  Parser p;
+  double x;
+  p.DefineVar("x", &x);
+  try {
+    p.SetExpr(probabilityDistribution);
+  } catch (Parser::exception_type &e) {
+    throw runtime_error("Error parsing probability distribution function: " + string(e.GetMsg()));
+  }
+  size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
+  size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
+
+  vector<double> weights;
+  graph.forEachVertexKey([&](K u) {
+    x = u;
+    weights.push_back(p.Eval());
+  });
+  uniform_int_distribution<K> sourceDistribution(1, graph.order());
+  discrete_distribution<K> targetDistribution(weights.begin(), weights.end());
+
+  for(size_t i = 0; i < numDeletions; i++) {
+    K u = sourceDistribution(rng);
+    K v = targetDistribution(rng)+1;
+    if (graph.hasEdge(u, v)) {
+      V w = graph.edgeValue(u, v);
+      deletions.emplace_back(u, v, w);
+    }
+  }
+  for(size_t i = 0; i < numInsertions; i++) {
+    K u = sourceDistribution(rng);
+    K v = targetDistribution(rng)+1;
+    if (!graph.hasEdge(u, v)) insertions.emplace_back(u, v, V());
+  }
+   if(!allowDuplicateEdges) tidyBatchUpdateU(deletions, insertions, graph);
+}
+
 #pragma endregion

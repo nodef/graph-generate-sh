@@ -157,6 +157,7 @@ void writeOutput(ofstream& outputFile, const DiGraph<int, int, int>& graph) {
 
 /**
 * @brief Handle the update nature (uniform, preferential, planted, match) for batch updates.
+* @param probabilityDistribution The probability distribution function to use for the update.
 * @param updateNature The update nature to apply.
 * @param graph The graph object to be updated.
 * @param rng The random number generator.
@@ -166,9 +167,11 @@ void writeOutput(ofstream& outputFile, const DiGraph<int, int, int>& graph) {
 * @param allowDuplicateEdges Allow duplicate edges in the batch update.
 * @throws runtime_error if the update nature is unknown.
 */
-void handleUpdateNature(const string& updateNature, DiGraph<int, int, int>& graph, mt19937_64& rng, size_t batchSize, double edgeDeletions, double edgeInsertions, bool allowDuplicateEdges = true) {
+void handleUpdateNature(const string& probabilityDistribution, const string& updateNature, DiGraph<int, int, int>& graph, mt19937_64& rng, size_t batchSize, double edgeDeletions, double edgeInsertions, bool allowDuplicateEdges = true) {
   vector<tuple<int, int, int>> insertions, deletions;
-  if (updateNature == "uniform") {
+  if (updateNature == "") {
+    customUpdate(probabilityDistribution ,rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
+  } else if (updateNature == "uniform") {
     uniformUpdate(rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
   } else if (updateNature == "preferential") {
     preferentialUpdate(rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
@@ -209,7 +212,8 @@ void handleOptions(const Options& options) {
   double vertexDeletions = options.params.count("vertex-deletions") ? stod(options.params.at("vertex-deletions")) : 0.0;
   double vertexGrowthRate = options.params.count("vertex-growth-rate") ? stod(options.params.at("vertex-growth-rate")) : 0.0;
   bool allowDuplicateVertices = options.params.count("allow-duplicate-vertices");
-  string updateNature = options.params.count("update-nature") ? options.params.at("update-nature") : string("uniform");
+  string probabilityDistribution = options.params.count("probability-distribution") ? options.params.at("probability-distribution") : "";
+  string updateNature = options.params.count("update-nature") ? options.params.at("update-nature") : "";
   int64_t minDegree = options.params.count("min-degree") ? stoll(options.params.at("min-degree")) : 0;
   int64_t maxDegree = options.params.count("max-degree") ? stoll(options.params.at("max-degree")) : 0;
   int64_t maxDiameter = options.params.count("max-diameter") ? stoll(options.params.at("max-diameter")) : 0;
@@ -232,7 +236,7 @@ void handleOptions(const Options& options) {
   mt19937_64 rng(seed);
   while (multiBatch--) {
     if (batchSize == 0) batchSize = graph.size() * batchSizeRatio;
-    handleUpdateNature(updateNature, graph, rng, batchSize, edgeDeletions, edgeInsertions, allowDuplicateEdges);
+    handleUpdateNature(probabilityDistribution, updateNature, graph, rng, batchSize, edgeDeletions, edgeInsertions, allowDuplicateEdges);
     printf("Perform batch update %d: %.3f seconds\n", counter+1, duration(startTime) / 1000.0);
     createOutputFile(outputDir, outputPrefix, ++counter, outputFile);
     writeOutput(outputFile, graph);

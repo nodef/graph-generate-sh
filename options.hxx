@@ -114,6 +114,7 @@ inline Options readOptions(int argc, char **argv) {
     else if (k=="--vertex-growth-rate")    o.params["vertex-growth-rate"] = argv[++i];
     else if (k=="--allow-duplicate-vertices") o.params["allow-duplicate-vertices"] = "1";
     else if (k=="--update-nature") o.params["update-nature"] = argv[++i];
+    else if (k=="--probability-distribution") o.params["probability-distribution"] = argv[++i];
     else if (k=="--min-degree")    o.params["min-degree"]    = argv[++i];
     else if (k=="--max-degree")    o.params["max-degree"]    = argv[++i];
     else if (k=="--max-diameter")  o.params["max-diameter"]  = argv[++i];
@@ -171,6 +172,7 @@ inline const char* helpMessage() {
   "                                   preferential: Preferential attachment model.\n"
   "                                   planted: Planted partition model.\n"
   "                                   match: Match the nature of the original graph.\n"
+  " --probability-distribution <f(x)>  Probability distribution function for the batch updates.\n"
   "\n"
   "Constraints:\n"
   "  --min-degree <degree>            Minimum degree constraint for the graph.\n"
