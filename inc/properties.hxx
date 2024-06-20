@@ -11,6 +11,10 @@
 
 using std::vector;
 using std::pow;
+using std::min;
+using std::max;
+using std::tuple;
+using std::stack;
 
 
 
@@ -401,4 +405,88 @@ inline vector<char> communitiesDisconnectedOmp(const G& x, const vector<K>& vcom
 }
 #endif
 #pragma endregion
+
+#pragma region DENSITY
+/**
+ * Find the density of a graph.
+ * @param x given graph
+ * @returns density of the graph
+ */
+template <class G>
+inline double density(const G& x) {
+  size_t N = x.order();
+  size_t E = x.size();
+  return static_cast<double>(E) / (N * N);
+}
+#pragma endregion
+
+#pragma region DEGREE DISTRIBUTION
+/**
+ * Find the out-degree distribution of a graph.
+ * @param x given graph
+ * @returns out-degrees of each vertex
+ */
+template <class G, class K>
+inline vector<K> degreeDistribution(const G& x) {
+  size_t mn = SIZE_MAX, mx = 0, sum = 0;
+  vector<K> a(x.order()+1, 0);
+  x.forEachVertexKey([&](auto u){
+    x.template forEachEdgeKey<std::function<void(K)>>(u, [&](auto v) { ++a[v]; });
+  });
+  return a;
+}
+#pragma endregion
+
+#pragma region STRONGLY CONNECTED COMPONENTS
+/**
+ * Find the number of strongly connected components of a graph.
+ * @param x given graph
+ * @returns number of strongly connected components
+ */
+template <class G>
+inline size_t tarjanSCC(const G& x) {
+  using K = typename G::key_type;
+  size_t N = x.order();
+  vector<K> index(N+1, -1);
+  vector<K> low(N+1, -1);
+  vector<bool> onstack(N+1, false);
+  stack<K> st;
+  size_t foundat = 1;
+  size_t count = 0;
+  std::function<void(K)> strongconnect = [&](K u) {
+    index[u] = low[u] = foundat++;
+    st.push(u);
+    onstack[u] = true;
+    x.forEachEdgeKey(u, [&](K v) {
+      if (index[v] == -1) {
+        strongconnect(v);
+        low[u] = min(low[u], low[v]);
+      } else if (onstack[v]) {
+        low[u] = min(low[u], index[v]);
+      }
+    });
+    if (low[u] == index[u]) {
+      count++;
+      vector<K> sccTemp;
+      K w;
+      do {
+        w = st.top();
+        st.pop();
+        onstack[w] = false;
+        sccTemp.push_back(w);
+      } while (w != u);
+      // cout << "SCC: ";
+      // for (auto v : sccTemp) cout << v << " ";
+      // cout << std::endl;
+    }
+  };
+  x.forEachVertexKey([&](K v) {
+    if (index[v] == -1) {
+      strongconnect(v);
+    }
+  });
+  return count;
+}
+#pragma endregion
+
 #pragma endregion

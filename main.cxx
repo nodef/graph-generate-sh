@@ -1,8 +1,13 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstdio>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <limits>
 #include "inc/main.hxx"
 #include "options.hxx"
+#include "inc/properties.hxx"
 
 using namespace std;
 
@@ -184,6 +189,44 @@ void handleUpdateNature(const string& probabilityDistribution, const string& upd
   }
   applyBatchUpdateU(graph, deletions, insertions);
 }
+
+template <class G>
+void writeGraphPropertiesToJSON(const G& graph, const string& filename) {
+  auto order = graph.order();
+  auto size = graph.size();
+  auto graphDensity = ::density(graph);
+  auto degrees = degreeDistribution<DiGraph<int, int, int>, int>(graph);
+  double min_degree = numeric_limits<double>::max();
+  double max_degree = 0.0;
+  double sum_degrees = 0.0;
+  for (auto degree : degrees) {
+    min_degree = min(min_degree, static_cast<double>(degree));
+    max_degree = max(max_degree, static_cast<double>(degree));
+    sum_degrees += degree;
+  }
+  auto avg_degree = sum_degrees / order;
+  auto scc = tarjanSCC(graph);
+  ofstream file(filename);
+  file << "{" << endl;
+  file << "    \"order\": " << order << "," << endl;
+  file << "    \"size\": " << size << "," << endl;
+  file << "    \"density\": " << fixed << setprecision(5) << graphDensity << "," << endl;
+  file << "    \"degree\": {" << endl;
+  file << "        \"min\": " << min_degree << "," << endl;
+  file << "        \"max\": " << max_degree << "," << endl;
+  file << "        \"avg\": " << fixed << setprecision(5) << avg_degree << endl;
+  file << "    }," << endl;
+  file << "    \"degreeDistribution\": [";
+  for (size_t i = 0; i < degrees.size(); ++i) {
+    file << degrees[i];
+    if (i != degrees.size() - 1) {
+      file << ", ";
+    }
+  }
+  file << "]," << endl;
+  file << "    \"scc\": " << scc << endl;
+  file << "}" << endl;
+}
 #pragma endregion
 
 #pragma region MAIN HANDLER
@@ -203,6 +246,7 @@ void handleOptions(const Options& options) {
   string outputDir = options.params.count("output-dir") ? options.params.at("output-dir") : "";
   string outputPrefix = options.params.count("output-prefix") ? options.params.at("output-prefix") : "";
   string outputFormat = options.params.count("output-format") ? options.params.at("output-format") : string("edgelist");
+  string propertiesFile = options.params.count("show-properties") ? options.params.at("show-properties") : "";
   int64_t batchSize = options.params.count("batch-size") ? stoll(options.params.at("batch-size")) : 0;
   double batchSizeRatio = options.params.count("batch-size-ratio") ? stod(options.params.at("batch-size-ratio")) : 0.0;
   double edgeInsertions = options.params.count("edge-insertions") ? stod(options.params.at("edge-insertions")) : 0.0;
@@ -224,22 +268,24 @@ void handleOptions(const Options& options) {
   random_device rd;
   int64_t seed = options.params.count("seed") ? stoll(options.params.at("seed")) : rd();
   DiGraph<int, int, int> graph;
+  int counter = 0;
+  ofstream outputFile;
+  mt19937_64 rng(seed);
   checkInputFile(inputGraph);
   handleInputFormat(inputFormat, graph, inputGraph);
   printf("Read graph: %.3f seconds\n", duration(startTime) / 1000.0);
+  if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter));
   for(int i=0; i<inputTransform.size(); i++) {
     handleInputTransform(inputTransform[i], graph);
     printf("Perform transform %s: %.3f seconds\n", inputTransform[i].c_str(), duration(startTime) / 1000.0);
   }
-  int counter = 0;
-  ofstream outputFile;
-  mt19937_64 rng(seed);
   while (multiBatch--) {
     if (batchSize == 0) batchSize = graph.size() * batchSizeRatio;
     handleUpdateNature(probabilityDistribution, updateNature, graph, rng, batchSize, edgeDeletions, edgeInsertions, allowDuplicateEdges);
     printf("Perform batch update %d: %.3f seconds\n", counter+1, duration(startTime) / 1000.0);
     createOutputFile(outputDir, outputPrefix, ++counter, outputFile);
     writeOutput(outputFile, graph);
+    if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter));
     printf("Write batch update %d: %.3f seconds\n", counter, duration(startTime) / 1000.0);
   }
 }

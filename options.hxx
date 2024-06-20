@@ -123,6 +123,7 @@ inline Options readOptions(int argc, char **argv) {
     else if (k=="--preserve-k-core")              o.params["preserve-k-core"] = argv[++i];
     else if (k=="--multi-batch") o.params["multi-batch"] = argv[++i];
     else if (k=="--seed") o.params["seed"] = argv[++i];
+    else if (k=="--show-properties") o.params["show-properties"] = argv[++i];
   }
   return o;
 }
@@ -186,6 +187,7 @@ inline const char* helpMessage() {
   "  --multi-batch <num>              Number of contiguous batch updates to generate.\n"
   "\n"
   "Miscellaneous:\n"
+  "  --show-properties                Path to store the properties of the generated graphs.\n"
   "  --seed <seed>                    Seed for random number generator (for reproducibility).\n"
   "  --help                           Display this help and exit.\n"
   "\n";
