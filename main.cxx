@@ -219,6 +219,7 @@ void writeGraphPropertiesToJSON(const G& graph, const string& filename,double di
   file << "        \"max\": " << max_degree << "," << endl;
   file << "        \"avg\": " << fixed << setprecision(5) << avg_degree << endl;
   file << "    }," << endl;
+  if(divergence_list!=1e9)
   file << "    \"KL distance \": "<<divergence_list<<endl;
   
 
@@ -281,12 +282,11 @@ void handleOptions(const Options& options) {
   checkInputFile(inputGraph);
   handleInputFormat(inputFormat, graph, inputGraph);
   printf("Read graph: %.3f seconds\n", duration(startTime) / 1000.0);
+  if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(0),1e9);
   for(int i=0; i<inputTransform.size(); i++) {
     handleInputTransform(inputTransform[i], graph);
     printf("Perform transform %s: %.3f seconds\n", inputTransform[i].c_str(), duration(startTime) / 1000.0);
   }
-  double divergence_list=0.0;
-  int num_elems=0;
   while (multiBatch--) {
     if (batchSize == 0) batchSize = graph.size() * batchSizeRatio;
     vector< double> weights;
@@ -299,17 +299,16 @@ void handleOptions(const Options& options) {
     createOutputFile(outputDir, outputPrefix, ++counter, outputFile);
     writeOutput(outputFile, graph);
     printf("Write batch update %d: %.3f seconds\n", counter, duration(startTime) / 1000.0);
+    double divergence=0;
     try {
-      double divergence;
         divergence = KLDivergence(normalised_weights_real, normalised_weights_actual);
-        divergence_list+=divergence;
-        num_elems++;
     } catch (const std::invalid_argument& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }
+   if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter),divergence);
+
   }
   
-  if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(0),divergence_list/num_elems);
 }
 #pragma endregion
 #pragma endregion
