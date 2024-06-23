@@ -209,6 +209,7 @@ void writeGraphPropertiesToJSON(const G& graph, const string& filename,double di
   }
   auto avg_degree = sum_degrees / order;
   auto scc = tarjanSCC(graph);
+  auto diameter = getDiameter(graph);
   ofstream file(filename);
   file << "{" << endl;
   file << "    \"order\": " << order << "," << endl;
@@ -219,10 +220,9 @@ void writeGraphPropertiesToJSON(const G& graph, const string& filename,double di
   file << "        \"max\": " << max_degree << "," << endl;
   file << "        \"avg\": " << fixed << setprecision(5) << avg_degree << endl;
   file << "    }," << endl;
+  file << "    \"diameter\": " << diameter << "," << endl;
   if(divergence_list!=1e9)
-  file << "    \"KL distance \": "<<divergence_list<<endl;
-  
-
+  file << "    \"KLD\": " << divergence_list << "," << endl;
   file << "    \"degreeDistribution\": [";
   for (size_t i = 0; i < degrees.size(); ++i) {
     file << degrees[i];
@@ -233,7 +233,6 @@ void writeGraphPropertiesToJSON(const G& graph, const string& filename,double di
   file << "]," << endl;
   file << "    \"scc\": " << scc << endl;
   file << "}" << endl;
-  cout<<filename<<endl;
 }
 #pragma endregion
 

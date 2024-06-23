@@ -1,5 +1,11 @@
 #pragma once
 #include <vector>
+#include <set>
+#include <stack>
+#include <queue>
+#include <limits>
+#include <algorithm>
+#include <functional>
 #include <cstdint>
 #include <cmath>
 #include "_main.hxx"
@@ -15,6 +21,10 @@ using std::min;
 using std::max;
 using std::tuple;
 using std::stack;
+using std::numeric_limits;
+using std::queue;
+using std::max_element;
+using std::set;
 
 
 
@@ -492,7 +502,7 @@ inline size_t tarjanSCC(const G& x) {
 
 #pragma endregion
 
-
+#pragma region KULLBACK LEIBLER DIVERGENCE
 /**
 * @brief  Calculate the KL distance between two distributions
 * @param P The vector for distribution 1.
@@ -568,5 +578,159 @@ std::vector<double> degreeDistributionToProbability(const std::map<size_t, size_
     return probabilities;
 }
 
+#pragma endregion
+
+#pragma region DIAMETER
+
+template <class K, class V, class E>
+vector<int> getDistanceFromU(const DiGraph<K, V, E>& graph, K u) {
+  vector<int> distanceFromU(graph.order()+1, numeric_limits<int>::max());
+  vector<bool> visited(graph.order()+1, false);
+  queue<K> BFSQueue;
+  visited[u] = true;
+  distanceFromU[u] = 0;
+  BFSQueue.push(u);
+  while (!BFSQueue.empty()) {
+    K top = BFSQueue.front();
+    BFSQueue.pop();
+    graph.forEachEdgeKey(top, [&](K v) {
+      if (!visited[v]) {
+        visited[v] = true;
+        distanceFromU[v] = distanceFromU[top] + 1;
+        BFSQueue.push(v);
+      }
+    });
+  }
+  return distanceFromU;
+}
+
+template <class K, class V, class E>
+int computeEccentricity(const DiGraph<K, V, E>& graph, K u) {
+  vector<int> distanceFromU = getDistanceFromU(graph, u);
+  return *max_element(distanceFromU.begin()+1, distanceFromU.end());
+}
+
+template <class K, class V, class E>
+vector<set<K>> computeF(const DiGraph<K, V, E>& graph, K u) {
+  vector<int> distanceFromU = getDistanceFromU(graph, u);
+  int eccentricity = computeEccentricity(graph, u);
+  vector<set<K>> F(eccentricity + 1);
+  graph.forEachVertexKey([&](K v) {
+    F[distanceFromU[v]].insert(v);
+  });
+  return F;
+}
+
+template <class K, class V, class E>
+int computeMaxEccentricity(const DiGraph<K, V, E>& graph, const set<K>& vertices) {
+  int maxEccentricity = 0;
+  for (K v : vertices) {
+    maxEccentricity = max(maxEccentricity, computeEccentricity(graph, v));
+  }
+  return maxEccentricity;
+}
+
+template <class K, class V, class E>
+int iFUB(const DiGraph<K, V, E>& graph, K u, int l, int k) {
+  int eccentricityU = computeEccentricity(graph, u);
+  int i = eccentricityU;
+  int lb = max(eccentricityU, l);
+  int ub = 2 * eccentricityU;
+  vector<set<K>> F = computeF(graph, u);
+  while (ub - lb > k) {
+    int newLowerBound = max(lb, computeMaxEccentricity(graph, F[i]));
+    if (newLowerBound > 2 * (i - 1)) {
+      return newLowerBound;
+    } else {
+      lb = newLowerBound;
+      ub = 2 * (i - 1);
+    }
+    i--;
+  }
+  return lb;
+}
+
+template <class K, class V, class E>
+K getVertexWithMaximumDegree(const DiGraph<K, V, E>& graph) {
+  K maxDegreeVertex = 0;
+  int maxDegree = 0;
+  graph.forEachVertexKey([&](K v) {
+    int degree = graph.degree(v);
+    if (degree > maxDegree) {
+      maxDegreeVertex = v;
+      maxDegree = degree;
+    }
+  });
+  return maxDegreeVertex;
+}
+
+template <class K, class V, class E>
+K maxDistantVertex(const DiGraph<K, V, E>& graph, K u) {
+  vector<E> distanceFromU = getDistanceFromU(graph, u);
+  K maxDistantVertex = u;
+  E maxDistance = distanceFromU[maxDistantVertex];
+  graph.forEachVertexKey([&](K v) {
+    if (distanceFromU[v] > maxDistance) {
+      maxDistantVertex = v;
+      maxDistance = distanceFromU[v];
+    }
+  });
+  return maxDistantVertex;
+}
+
+template <class K, class V, class E>
+K midVertex(const DiGraph<K, V, E>& graph, K u, K v) {
+  vector<E> distanceFromU(graph.order()+1);
+  vector<K> parentVertex(graph.order()+1);
+  vector<bool> visited(graph.order()+1, false);
+  queue<K> BFSQueue;
+  visited[u] = true;
+  distanceFromU[u] = 0;
+  parentVertex[u] = -1;
+  BFSQueue.push(u);
+  while (!BFSQueue.empty()) {
+    K top = BFSQueue.front();
+    BFSQueue.pop();
+    graph.forEachEdgeKey(top, [&](K neighbor) {
+      if (!visited[neighbor]) {
+        visited[neighbor] = true;
+        distanceFromU[neighbor] = distanceFromU[top] + 1;
+        parentVertex[neighbor] = top;
+        BFSQueue.push(neighbor);
+      }
+    });
+    if (visited[v]) {
+      break;
+    }
+  }
+  E midDistance = distanceFromU[v] / 2;
+  K midVertex = v;
+  while (midDistance--) {
+    midVertex = parentVertex[midVertex];
+  }
+  return midVertex;
+}
+
+template <class K, class V, class E>
+pair<E, K> fourSweep(const DiGraph<K, V, E>& graph) {
+  K r1 = getVertexWithMaximumDegree(graph);
+  K a1 = maxDistantVertex(graph, r1);
+  K b1 = maxDistantVertex(graph, a1);
+  K r2 = midVertex(graph, a1, b1);
+  K a2 = maxDistantVertex(graph, r2);
+  K b2 = maxDistantVertex(graph, a2);
+  K u = midVertex(graph, a2, b2);
+  E lb = min(computeEccentricity(graph, a1), computeEccentricity(graph, a2));
+  return make_pair(lb, u);
+}
+
+template <class K, class V, class E>
+int getDiameter(const DiGraph<K, V, E>& graph) {
+  auto sym_graph = symmetrize(graph);
+  pair<E, K> p = fourSweep(sym_graph);
+  return iFUB(sym_graph, p.second, p.first, 0);
+}
+
+#pragma endregion
 
 #pragma endregion
