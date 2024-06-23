@@ -727,6 +727,31 @@ pair<E, K> fourSweep(const DiGraph<K, V, E>& graph) {
 template <class K, class V, class E>
 int getDiameter(const DiGraph<K, V, E>& graph) {
   auto sym_graph = symmetrize(graph);
+  vector<bool> visited(graph.order()+1, false);
+  queue<K> BFSQueue;
+  K start;
+  graph.forEachVertexKey([&](K v) {
+    start = v;
+  });
+  visited[start] = true;
+  BFSQueue.push(start);
+  while (!BFSQueue.empty()) {
+    K top = BFSQueue.front();
+    BFSQueue.pop();
+    graph.forEachEdgeKey(top, [&](K neighbor) {
+      if (!visited[neighbor]) {
+        visited[neighbor] = true;
+        BFSQueue.push(neighbor);
+      }
+    });
+  }
+  int flg=1;
+  graph.forEachVertexKey([&](K v) {
+    if(!visited[v]) {flg=0;}
+  });
+  if(flg==0) {
+    return -1;
+  }
   pair<E, K> p = fourSweep(sym_graph);
   return iFUB(sym_graph, p.second, p.first, 0);
 }
