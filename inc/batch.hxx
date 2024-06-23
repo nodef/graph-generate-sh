@@ -273,7 +273,10 @@ inline void applyBatchUpdateOmpU(G& a, const vector<tuple<K, K, V>>& deletions, 
  * @param allowDuplicateEdges allow duplicate edges in batch?
 */
 template <class R, class G, typename K, typename V>
-void uniformUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges) {
+void uniformUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges,vector<double> &weights) {
+    graph.forEachVertexKey([&](K u) {
+      weights.push_back(1);
+    });
     size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
     deletions = generateEdgeDeletions(rng, graph, numDeletions, 1, graph.order(), false);
     size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
@@ -299,7 +302,7 @@ void uniformUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, do
 
 */
 template <class R, class G, typename K, typename V>
-void preferentialUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges) {
+void preferentialUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges,vector<double>& inDegreeWeights) {
   size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
   size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
   vector<int> inDegrees(graph.order(), 0);
@@ -310,7 +313,7 @@ void preferentialUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertion
   });
   double beta = 1.0;
   double lambda = 0.0;
-  vector<double> inDegreeWeights;
+  // vector<double> inDegreeWeights;
   double totalInDegree = 0;
   graph.forEachVertexKey([&](K u) {
     inDegreeWeights.push_back(exp(beta * log(1 + inDegrees[u-1])) - lambda);
@@ -348,9 +351,10 @@ void preferentialUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertion
  * @param insertions edge insertions in batch update 
  * @param deletions edge deletions in batch update 
  * @param allowDuplicateEdges allow duplicate edges in batch?
+ * @param weights weights to be filled in according to the distribution
 */
 template <class R, class G, typename K, typename V>
-void customUpdate(const string& probabilityDistribution, R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges) {
+void customUpdate(const string& probabilityDistribution, R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges, vector<double> &weights) {
   Parser p;
   double x;
   p.DefineVar("x", &x);
@@ -362,7 +366,7 @@ void customUpdate(const string& probabilityDistribution, R& rng, G& graph, size_
   size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
   size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
 
-  vector<double> weights;
+  // vector<double> weights;
   graph.forEachVertexKey([&](K u) {
     x = u;
     weights.push_back(p.Eval());
