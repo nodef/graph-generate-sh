@@ -231,7 +231,23 @@ void writeGraphPropertiesToJSON(const G& graph, const string& filename,double di
     }
   }
   file << "]," << endl;
-  file << "    \"scc\": " << scc << endl;
+  file << "    \"scc\": " << scc << "," << endl;
+  file << "    \"adjacencyMatrix\": [" << endl;
+  for (size_t i = 0; i < order; ++i) {
+    file << "        [";
+    for (size_t j = 0; j < order; ++j) {
+      file << (graph.hasEdge(i, j) ? "1" : "0");
+      if (j != order - 1) {
+        file << ", ";
+      }
+    }
+    file << "]";
+    if (i != order - 1) {
+      file << ",";
+    }
+    file << endl;
+  }
+  file << "    ]" << endl;
   file << "}" << endl;
 }
 #pragma endregion
@@ -299,11 +315,11 @@ void handleOptions(const Options& options) {
     writeOutput(outputFile, graph);
     printf("Write batch update %d: %.3f seconds\n", counter, duration(startTime) / 1000.0);
     double divergence=0;
-    try {
-        divergence = KLDivergence(normalised_weights_real, normalised_weights_actual);
-    } catch (const std::invalid_argument& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
+    // try {
+    //     divergence = KLDivergence(normalised_weights_real, normalised_weights_actual);
+    // } catch (const std::invalid_argument& e) {
+    //     std::cerr << "Error: " << e.what() << std::endl;
+    // }
    if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter),divergence);
 
   }
