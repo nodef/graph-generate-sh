@@ -527,24 +527,6 @@ double KLDivergence(const std::vector<double>& P, const std::vector<double>& Q) 
 }
 
 
-/**
-* @brief  Normalises the vector
-* @param values The vector to be normalised.
-* @return The normalised value vector
-*/
-
-
-std::vector<double> normalize(const std::vector<double>& values) {
-    double sum = 0.0;
-    for (double value : values) {
-        sum += value;
-    }
-    std::vector<double> normalized;
-    for (double value : values) {
-        normalized.push_back(value / sum);
-    }
-    return normalized;
-}
 
 /**
 * @brief  Calculates the indegree distribution

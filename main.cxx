@@ -175,14 +175,14 @@ void writeOutput(ofstream& outputFile, const DiGraph<int, int, int>& graph) {
 * @param allowDuplicateEdges Allow duplicate edges in the batch update.
 * @throws runtime_error if the update nature is unknown.
 */
-void handleUpdateNature(const string& probabilityDistribution, const string& updateNature, DiGraph<int, int, int>& graph, mt19937_64& rng, size_t batchSize, double edgeDeletions, double edgeInsertions, vector<double>&weights, bool allowDuplicateEdges = true) {
+void handleUpdateNature(const string& probabilityDistribution, const string& updateNature, DiGraph<int, int, int>& graph, mt19937_64& rng, size_t batchSize, double edgeDeletions, double edgeInsertions, bool allowDuplicateEdges = true) {
   vector<tuple<int, int, int>> insertions, deletions;
   if (updateNature == "") {
-    customUpdate(probabilityDistribution ,rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges,weights);
+    customUpdate(probabilityDistribution ,rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
   } else if (updateNature == "uniform") {
-    uniformUpdate(rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges,weights);
+    uniformUpdate(rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
   } else if (updateNature == "preferential") {
-    preferentialUpdate(rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges,weights);
+    preferentialUpdate(rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
   } else if (updateNature == "planted") {
     // Handle planted update 
   } else if (updateNature == "match") {
@@ -232,22 +232,22 @@ void writeGraphPropertiesToJSON(const G& graph, const string& filename,double di
   }
   file << "]," << endl;
   file << "    \"scc\": " << scc << "," << endl;
-  file << "    \"adjacencyMatrix\": [" << endl;
-  for (size_t i = 0; i < order; ++i) {
-    file << "        [";
-    for (size_t j = 0; j < order; ++j) {
-      file << (graph.hasEdge(i, j) ? "1" : "0");
-      if (j != order - 1) {
-        file << ", ";
-      }
-    }
-    file << "]";
-    if (i != order - 1) {
-      file << ",";
-    }
-    file << endl;
-  }
-  file << "    ]" << endl;
+  // file << "    \"adjacencyMatrix\": [" << endl;
+  // for (size_t i = 0; i < order; ++i) {
+  //   file << "        [";
+  //   for (size_t j = 0; j < order; ++j) {
+  //     file << (graph.hasEdge(i, j) ? "1" : "0");
+  //     if (j != order - 1) {
+  //       file << ", ";
+  //     }
+  //   }
+  //   file << "]";
+  //   if (i != order - 1) {
+  //     file << ",";
+  //   }
+  //   file << endl;
+  // }
+  // file << "    ]" << endl;
   file << "}" << endl;
 }
 #pragma endregion
@@ -302,11 +302,17 @@ void handleOptions(const Options& options) {
     handleInputTransform(inputTransform[i], graph);
     printf("Perform transform %s: %.3f seconds\n", inputTransform[i].c_str(), duration(startTime) / 1000.0);
   }
+
+  std::map<size_t, size_t> inDegreeDistribution_original;
+  calculateInDegreeDistribution<DiGraph<int, int, int>, int>(graph, inDegreeDistribution_original);
+  std::vector<double> normalised_weights_original= degreeDistributionToProbability(inDegreeDistribution_original);
+
+
+
+  // return;
   while (multiBatch--) {
     if (batchSize == 0) batchSize = graph.size() * batchSizeRatio;
-    vector< double> weights;
-    handleUpdateNature(probabilityDistribution, updateNature, graph, rng, batchSize, edgeDeletions, edgeInsertions,weights, allowDuplicateEdges);
-    std::vector<double> normalised_weights_actual = normalize(weights);
+    handleUpdateNature(probabilityDistribution, updateNature, graph, rng, batchSize, edgeDeletions, edgeInsertions, allowDuplicateEdges);
     std::map<size_t, size_t> inDegreeDistribution;
     calculateInDegreeDistribution<DiGraph<int, int, int>, int>(graph, inDegreeDistribution);
     std::vector<double> normalised_weights_real= degreeDistributionToProbability(inDegreeDistribution);
@@ -315,11 +321,11 @@ void handleOptions(const Options& options) {
     writeOutput(outputFile, graph);
     printf("Write batch update %d: %.3f seconds\n", counter, duration(startTime) / 1000.0);
     double divergence=0;
-    // try {
-    //     divergence = KLDivergence(normalised_weights_real, normalised_weights_actual);
-    // } catch (const std::invalid_argument& e) {
-    //     std::cerr << "Error: " << e.what() << std::endl;
-    // }
+    try {
+        divergence = KLDivergence(normalised_weights_real, normalised_weights_original);
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
    if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter),divergence);
 
   }
