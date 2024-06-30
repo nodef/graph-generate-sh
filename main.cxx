@@ -232,22 +232,22 @@ void writeGraphPropertiesToJSON(const G& graph, const string& filename,double di
   }
   file << "]," << endl;
   file << "    \"scc\": " << scc << "," << endl;
-  // file << "    \"adjacencyMatrix\": [" << endl;
-  // for (size_t i = 0; i < order; ++i) {
-  //   file << "        [";
-  //   for (size_t j = 0; j < order; ++j) {
-  //     file << (graph.hasEdge(i, j) ? "1" : "0");
-  //     if (j != order - 1) {
-  //       file << ", ";
-  //     }
-  //   }
-  //   file << "]";
-  //   if (i != order - 1) {
-  //     file << ",";
-  //   }
-  //   file << endl;
-  // }
-  // file << "    ]" << endl;
+  file << "    \"adjacencyMatrix\": [" << endl;
+  for (size_t i = 0; i < order; ++i) {
+    file << "        [";
+    for (size_t j = 0; j < order; ++j) {
+      file << (graph.hasEdge(i, j) ? "1" : "0");
+      if (j != order - 1) {
+        file << ", ";
+      }
+    }
+    file << "]";
+    if (i != order - 1) {
+      file << ",";
+    }
+    file << endl;
+  }
+  file << "    ]" << endl;
   file << "}" << endl;
 }
 #pragma endregion
