@@ -232,15 +232,31 @@ inline void tidyBatchUpdateU(vector<tuple<K, K, V>>& deletions, vector<tuple<K, 
  * @param a input graph (updated)
  * @param deletions edge deletions in batch update
  * @param insertions edge insertions in batch update
+ * @param graphType type of graph(directed, undirected)
  */
 template <class G, class K, class V>
-inline void applyBatchUpdateU(G& a, const vector<tuple<K, K, V>>& deletions, const vector<tuple<K, K, V>>& insertions) {
-  for (auto [u, v, w] : deletions)
-    a.removeEdge(u, v);
-  updateU(a);
-  for (auto [u, v, w] : insertions)
-    a.addEdge(u, v, w);
-  updateU(a);
+inline void applyBatchUpdateU(G& a, const vector<tuple<K, K, V>>& deletions, const vector<tuple<K, K, V>>& insertions, const string& graphType) {
+  if (graphType == "directed") {
+    for (auto [u, v, w] : deletions)
+      a.removeEdge(u, v);
+    updateU(a);
+    for (auto [u, v, w] : insertions)
+      a.addEdge(u, v, w);
+    updateU(a);
+  } else if (graphType == "undirected") {
+    for (auto [u, v, w] : deletions) {
+      a.removeEdge(u, v);
+      a.removeEdge(v, u);
+    }
+    updateU(a);
+    for (auto [u, v, w] : insertions) {
+      a.addEdge(u, v, w);
+      a.addEdge(v, u, w);
+    }
+    updateU(a);
+  } else {
+    throw runtime_error("Invalid graph type: " + graphType);
+  }
 }
 
 
@@ -356,42 +372,42 @@ void preferentialUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertion
  * @param deletions edge deletions in batch update 
  * @param allowDuplicateEdges allow duplicate edges in batch?
 */
-// template <class R, class G, typename K, typename V>
-// void customUpdate(const string& probabilityDistribution, R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges) {
-//   Parser p;
-//   double x;
-//   p.DefineVar("x", &x);
-//   try {
-//     p.SetExpr(probabilityDistribution);
-//   } catch (Parser::exception_type &e) {
-//     throw runtime_error("Error parsing probability distribution function: " + string(e.GetMsg()));
-//   }
-//   size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
-//   size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
+template <class R, class G, typename K, typename V>
+void customUpdate(const string& probabilityDistribution, R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges) {
+  Parser p;
+  double x;
+  p.DefineVar("x", &x);
+  try {
+    p.SetExpr(probabilityDistribution);
+  } catch (Parser::exception_type &e) {
+    throw runtime_error("Error parsing probability distribution function: " + string(e.GetMsg()));
+  }
+  size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
+  size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
 
-//   vector<double> weights;
-//   graph.forEachVertexKey([&](K u) {
-//     x = u;
-//     weights.push_back(p.Eval());
-//   });
-//   uniform_int_distribution<K> sourceDistribution(1, graph.order());
-//   discrete_distribution<K> targetDistribution(weights.begin(), weights.end());
+  vector<double> weights;
+  graph.forEachVertexKey([&](K u) {
+    x = u;
+    weights.push_back(p.Eval());
+  });
+  // uniform_int_distribution<K> sourceDistribution(1, graph.order());
+  discrete_distribution<K> targetDistribution(weights.begin(), weights.end());
 
-//   for(size_t i = 0; i < numDeletions; i++) {
-//     K u = sourceDistribution(rng);
-//     K v = targetDistribution(rng)+1;
-//     if (graph.hasEdge(u, v)) {
-//       V w = graph.edgeValue(u, v);
-//       deletions.emplace_back(u, v, w);
-//     }
-//   }
-//   for(size_t i = 0; i < numInsertions; i++) {
-//     K u = sourceDistribution(rng);
-//     K v = targetDistribution(rng)+1;
-//     if (!graph.hasEdge(u, v)) insertions.emplace_back(u, v, V());
-//   }
-//    if(!allowDuplicateEdges) tidyBatchUpdateU(deletions, insertions, graph);
-// }
+  for(size_t i = 0; i < numDeletions; i++) {
+    K u = targetDistribution(rng)+1;
+    K v = targetDistribution(rng)+1;
+    if (graph.hasEdge(u, v)) {
+      V w = graph.edgeValue(u, v);
+      deletions.emplace_back(u, v, w);
+    }
+  }
+  for(size_t i = 0; i < numInsertions; i++) {
+    K u = targetDistribution(rng)+1;
+    K v = targetDistribution(rng)+1;
+    if (!graph.hasEdge(u, v)) insertions.emplace_back(u, v, V());
+  }
+  //  if(!allowDuplicateEdges) tidyBatchUpdateU(deletions, insertions, graph);
+}
 
 // template <class R, class G, typename K, typename V>
 // void customUpdate(const string& probabilityDistribution, R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions,  vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges) {
@@ -452,51 +468,51 @@ void preferentialUpdate(R& rng, G& graph, size_t batchSize, double edgeInsertion
 // }
 
 
-template <class R, class G, typename K, typename V>
-void customUpdate(const string& probabilityDistribution, R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges) {
-  Parser p;
-  double x;
-  p.DefineVar("x", &x);
-  try {
-    p.SetExpr(probabilityDistribution);
-  } catch (Parser::exception_type &e) {
-    throw runtime_error("Error parsing probability distribution function: " + string(e.GetMsg()));
-  }
-  int n = graph.order();
-  double f_max = 1;
-  auto sample_edge = [&]() -> pair<int, int> {
-    uniform_real_distribution<> dis_x(1, n * n);
-    uniform_real_distribution<> dis_y(0, f_max);
-    int retries = 10;
-    while (retries-- > 0) {
-      double x_sample = dis_x(rng);
-      double y = dis_y(rng);
-      f_max = max(f_max, p.Eval());
-      x = x_sample;
-      if (y <= p.Eval()) {
-        int u = ceil(x_sample / static_cast<double>(n));
-        int v = static_cast<int>(x_sample) % n + 1;
-        return {u, v};
-      }
-    }
-    return {-1, -1};
-  };
-  size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
-  size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
-  for (size_t i = 0; i < numDeletions; i++) {
-    auto [u, v] = sample_edge();
-    if ((u != -1) && graph.hasEdge(u, v) ) {
-      V w = graph.edgeValue(u, v);
-      deletions.emplace_back(u, v, w);
-    }
-  }
-  for (size_t i = 0; i < numInsertions; i++) {
-    auto [u, v] = sample_edge();
-    if ((u != -1) && !graph.hasEdge(u, v)) {
-      insertions.emplace_back(u, v, V());
-    }
-  }
-  // if(!allowDuplicateEdges) tidyBatchUpdateU(deletions, insertions, graph);
-}
+// template <class R, class G, typename K, typename V>
+// void customUpdate(const string& probabilityDistribution, R& rng, G& graph, size_t batchSize, double edgeInsertions, double edgeDeletions, vector<tuple<K, K, V>>& insertions, vector<tuple<K, K, V>>& deletions, bool allowDuplicateEdges) {
+//   Parser p;
+//   double x;
+//   p.DefineVar("x", &x);
+//   try {
+//     p.SetExpr(probabilityDistribution);
+//   } catch (Parser::exception_type &e) {
+//     throw runtime_error("Error parsing probability distribution function: " + string(e.GetMsg()));
+//   }
+//   int n = graph.order();
+//   double f_max = 0;
+//   auto sample_edge = [&]() -> pair<int, int> {
+//     uniform_real_distribution<> dis_x(1, n * n);
+//     uniform_real_distribution<> dis_y(0, f_max);
+//     int retries = 10;
+//     while (retries-- > 0) {
+//       double x_sample = dis_x(rng);
+//       double y = dis_y(rng);
+//       f_max = max(f_max, p.Eval());
+//       x = x_sample;
+//       if (y <= p.Eval()) {
+//         int u = ceil(x_sample / static_cast<double>(n));
+//         int v = static_cast<int>(x_sample) % n + 1;
+//         return {u, v};
+//       }
+//     }
+//     return {-1, -1};
+//   };
+//   size_t numDeletions = static_cast<size_t>(batchSize * edgeDeletions);
+//   size_t numInsertions = static_cast<size_t>(batchSize * edgeInsertions);
+//   for (size_t i = 0; i < numDeletions; i++) {
+//     auto [u, v] = sample_edge();
+//     if ((u != -1) && graph.hasEdge(u, v) ) {
+//       V w = graph.edgeValue(u, v);
+//       deletions.emplace_back(u, v, w);
+//     }
+//   }
+//   for (size_t i = 0; i < numInsertions; i++) {
+//     auto [u, v] = sample_edge();
+//     if ((u != -1) && !graph.hasEdge(u, v)) {
+//       insertions.emplace_back(u, v, V());
+//     }
+//   }
+//   // if(!allowDuplicateEdges) tidyBatchUpdateU(deletions, insertions, graph);
+// }
 
 #pragma endregion

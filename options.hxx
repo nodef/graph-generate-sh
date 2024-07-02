@@ -124,6 +124,7 @@ inline Options readOptions(int argc, char **argv) {
     else if (k=="--multi-batch") o.params["multi-batch"] = argv[++i];
     else if (k=="--seed") o.params["seed"] = argv[++i];
     else if (k=="--show-properties") o.params["show-properties"] = argv[++i];
+    else if (k=="--graph-type") o.params["graph-type"] = argv[++i];
   }
   return o;
 }
@@ -145,6 +146,9 @@ inline const char* helpMessage() {
   "Usage: graph-generate [OPTIONS]\n"
   "\n"
   "Options:\n"
+  "  --graph-type <type>            Type of the input graph. Options:\n"
+  "                                 directed\n"
+  "                                 undirected\n"
   "  --input-graph <file>           Path to the input static graph file.\n"
   "  --input-format <format>        Format of the input static graph file.\n"
   "  --input-transform <transforms> Transformations to apply to the input graph.\n"

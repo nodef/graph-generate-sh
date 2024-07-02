@@ -173,9 +173,10 @@ void writeOutput(ofstream& outputFile, const DiGraph<int, int, int>& graph) {
 * @param edgeInsertions The fraction of edges to be inserted.
 * @param weights The weights according to the given distribution must be filled in here.
 * @param allowDuplicateEdges Allow duplicate edges in the batch update.
+* @param graphType The type of the graph (directed, undirected).
 * @throws runtime_error if the update nature is unknown.
 */
-void handleUpdateNature(const string& probabilityDistribution, const string& updateNature, DiGraph<int, int, int>& graph, mt19937_64& rng, size_t batchSize, double edgeDeletions, double edgeInsertions, bool allowDuplicateEdges = true) {
+void handleUpdateNature(const string& probabilityDistribution, const string& updateNature, DiGraph<int, int, int>& graph, mt19937_64& rng, size_t batchSize, double edgeDeletions, double edgeInsertions, bool allowDuplicateEdges = true, const string& graphType = "directed") {
   vector<tuple<int, int, int>> insertions, deletions;
   if (updateNature == "") {
     customUpdate(probabilityDistribution ,rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
@@ -190,7 +191,7 @@ void handleUpdateNature(const string& probabilityDistribution, const string& upd
   } else {
     throw runtime_error("Unknown update nature: " + updateNature);
   }
-  applyBatchUpdateU(graph, deletions, insertions);
+  applyBatchUpdateU(graph, deletions, insertions, graphType);
 }
 
 template <class G>
@@ -288,6 +289,7 @@ void handleOptions(const Options& options) {
   bool preserveCommunities = options.params.count("preserve-communities");
   int64_t preserveKCore = options.params.count("preserve-k-core") ? stoll(options.params.at("preserve-k-core")) : 0;
   int64_t multiBatch = options.params.count("multi-batch") ? stoll(options.params.at("multi-batch")) : 1;
+  string graphType = options.params.count("graph-type") ? options.params.at("graph-type") : string("directed");
   random_device rd;
   int64_t seed = options.params.count("seed") ? stoll(options.params.at("seed")) : rd();
   DiGraph<int, int, int> graph;
@@ -302,20 +304,15 @@ void handleOptions(const Options& options) {
     handleInputTransform(inputTransform[i], graph);
     printf("Perform transform %s: %.3f seconds\n", inputTransform[i].c_str(), duration(startTime) / 1000.0);
   }
-
-  std::map<size_t, size_t> inDegreeDistribution_original;
+  map<size_t, size_t> inDegreeDistribution_original;
   calculateInDegreeDistribution<DiGraph<int, int, int>, int>(graph, inDegreeDistribution_original);
-  std::vector<double> normalised_weights_original= degreeDistributionToProbability(inDegreeDistribution_original);
-
-
-
-  // return;
+  vector<double> normalised_weights_original= degreeDistributionToProbability(inDegreeDistribution_original);
   while (multiBatch--) {
     if (batchSize == 0) batchSize = graph.size() * batchSizeRatio;
-    handleUpdateNature(probabilityDistribution, updateNature, graph, rng, batchSize, edgeDeletions, edgeInsertions, allowDuplicateEdges);
-    std::map<size_t, size_t> inDegreeDistribution;
+    handleUpdateNature(probabilityDistribution, updateNature, graph, rng, batchSize, edgeDeletions, edgeInsertions, allowDuplicateEdges, graphType);
+    map<size_t, size_t> inDegreeDistribution;
     calculateInDegreeDistribution<DiGraph<int, int, int>, int>(graph, inDegreeDistribution);
-    std::vector<double> normalised_weights_real= degreeDistributionToProbability(inDegreeDistribution);
+    vector<double> normalised_weights_real= degreeDistributionToProbability(inDegreeDistribution);
     printf("Perform batch update %d: %.3f seconds\n", counter+1, duration(startTime) / 1000.0);
     createOutputFile(outputDir, outputPrefix, ++counter, outputFile);
     writeOutput(outputFile, graph);
@@ -323,13 +320,11 @@ void handleOptions(const Options& options) {
     double divergence=0;
     try {
         divergence = KLDivergence(normalised_weights_real, normalised_weights_original);
-    } catch (const std::invalid_argument& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+    } catch (const invalid_argument& e) {
+        cerr << "Error: " << e.what() << endl;
     }
-   if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter),divergence);
-
+    if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter),divergence);
   }
-  
 }
 #pragma endregion
 #pragma endregion
