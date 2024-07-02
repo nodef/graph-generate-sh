@@ -288,7 +288,7 @@ void handleOptions(const Options& options) {
   int64_t minDegree = options.params.count("min-degree") ? stoll(options.params.at("min-degree")) : 0;
   int64_t maxDegree = options.params.count("max-degree") ? stoll(options.params.at("max-degree")) : 0;
   int64_t minDiameter = options.params.count("min-diameter") ? stoll(options.params.at("min-diameter")) : 0;
-  int64_t maxDiameter = options.params.count("max-diameter") ? stoll(options.params.at("max-diameter")) : LONG_MAX;
+  int64_t maxDiameter = options.params.count("max-diameter") ? stoll(options.params.at("max-diameter")) : INT_MAX;
   bool preserveDegreeDistribution = options.params.count("preserve-degree-distribution");
   bool preserveCommunities = options.params.count("preserve-communities");
   int64_t preserveKCore = options.params.count("preserve-k-core") ? stoll(options.params.at("preserve-k-core")) : 0;
