@@ -117,6 +117,7 @@ inline Options readOptions(int argc, char **argv) {
     else if (k=="--probability-distribution") o.params["probability-distribution"] = argv[++i];
     else if (k=="--min-degree")    o.params["min-degree"]    = argv[++i];
     else if (k=="--max-degree")    o.params["max-degree"]    = argv[++i];
+    else if (k=="--min-diameter")  o.params["min-diameter"]  = argv[++i];
     else if (k=="--max-diameter")  o.params["max-diameter"]  = argv[++i];
     else if (k=="--preserve-degree-distribution") o.params["preserve-degree-distribution"] = "1";
     else if (k=="--preserve-communities")         o.params["preserve-communities"] = "1";
@@ -182,6 +183,7 @@ inline const char* helpMessage() {
   "Constraints:\n"
   "  --min-degree <degree>            Minimum degree constraint for the graph.\n"
   "  --max-degree <degree>            Maximum degree constraint for the graph.\n"
+  "  --min-diameter <diameter>                Ensure the diameter of the graph does not fall below the specified value.\n"
   "  --max-diameter <diameter>        Ensure the diameter of the graph does not exceed the specified value.\n"
   "  --preserve-degree-distribution   Ensure the degree distribution is maintained.\n"
   "  --preserve-communities           Preserve community structures.\n"
