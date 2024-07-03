@@ -195,7 +195,7 @@ void handleUpdateNature(const string& probabilityDistribution, const string& upd
 }
 
 template <class G>
-void writeGraphPropertiesToJSON(const G& graph, const string& filename, double divergence_list, int minDiameter, int maxDiameter) {
+void writeGraphPropertiesToJSON(const G& graph, const string& filename, double divergence_list, map<string,int>& constraints) {
   int satisfyConstraints = 1;
   auto order = graph.order();
   auto size = graph.size();  
@@ -212,7 +212,7 @@ void writeGraphPropertiesToJSON(const G& graph, const string& filename, double d
   auto avg_degree = sum_degrees / order;
   auto scc = tarjanSCC(graph);
   auto diameter = getDiameter(graph);
-  if (diameter < minDiameter || diameter > maxDiameter) satisfyConstraints = 0;
+  if ( diameter < constraints["minDiameter"] || diameter > constraints["maxDiameter"] || min_degree < constraints["minDegree"] || max_degree > constraints["maxDegree"] || scc < constraints["minSCC"] || scc > constraints["maxSCC"]) satisfyConstraints = 0;
   ofstream file(filename);
   file << "{" << endl;
   file << "    \"order\": " << order << "," << endl;
@@ -286,9 +286,11 @@ void handleOptions(const Options& options) {
   string probabilityDistribution = options.params.count("probability-distribution") ? options.params.at("probability-distribution") : "";
   string updateNature = options.params.count("update-nature") ? options.params.at("update-nature") : "";
   int64_t minDegree = options.params.count("min-degree") ? stoll(options.params.at("min-degree")) : 0;
-  int64_t maxDegree = options.params.count("max-degree") ? stoll(options.params.at("max-degree")) : 0;
+  int64_t maxDegree = options.params.count("max-degree") ? stoll(options.params.at("max-degree")) : INT_MAX;
   int64_t minDiameter = options.params.count("min-diameter") ? stoll(options.params.at("min-diameter")) : 0;
   int64_t maxDiameter = options.params.count("max-diameter") ? stoll(options.params.at("max-diameter")) : INT_MAX;
+  int64_t minSCC = options.params.count("min-scc") ? stoll(options.params.at("min-scc")) : 0;
+  int64_t maxSCC = options.params.count("max-scc") ? stoll(options.params.at("max-scc")) : INT_MAX;
   bool preserveDegreeDistribution = options.params.count("preserve-degree-distribution");
   bool preserveCommunities = options.params.count("preserve-communities");
   int64_t preserveKCore = options.params.count("preserve-k-core") ? stoll(options.params.at("preserve-k-core")) : 0;
@@ -296,6 +298,13 @@ void handleOptions(const Options& options) {
   string graphType = options.params.count("graph-type") ? options.params.at("graph-type") : string("directed");
   random_device rd;
   int64_t seed = options.params.count("seed") ? stoll(options.params.at("seed")) : rd();
+  map<string, int> constraints;
+  constraints["minDegree"] = minDegree;
+  constraints["maxDegree"] = maxDegree;
+  constraints["minDiameter"] = minDiameter;
+  constraints["maxDiameter"] = maxDiameter;
+  constraints["minSCC"] = minSCC;
+  constraints["maxSCC"] = maxSCC;
   DiGraph<int, int, int> graph;
   int counter = 0;
   ofstream outputFile;
@@ -303,7 +312,7 @@ void handleOptions(const Options& options) {
   checkInputFile(inputGraph);
   handleInputFormat(inputFormat, graph, inputGraph);
   printf("Read graph: %.3f seconds\n", duration(startTime) / 1000.0);
-  if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(0), 1e9, minDiameter, maxDiameter);
+  if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(0), 1e9, constraints);
   for(int i=0; i<inputTransform.size(); i++) {
     handleInputTransform(inputTransform[i], graph);
     printf("Perform transform %s: %.3f seconds\n", inputTransform[i].c_str(), duration(startTime) / 1000.0);
@@ -327,7 +336,7 @@ void handleOptions(const Options& options) {
     } catch (const invalid_argument& e) {
         cerr << "Error: " << e.what() << endl;
     }
-    if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter), divergence, minDiameter, maxDiameter);
+    if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter), divergence, constraints);
   }
 }
 #pragma endregion
