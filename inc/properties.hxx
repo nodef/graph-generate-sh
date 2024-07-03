@@ -589,7 +589,13 @@ vector<int> getDistanceFromU(const DiGraph<K, V, E>& graph, K u) {
 template <class K, class V, class E>
 int computeEccentricity(const DiGraph<K, V, E>& graph, K u) {
   vector<int> distanceFromU = getDistanceFromU(graph, u);
-  return *max_element(distanceFromU.begin()+1, distanceFromU.end());
+  int eccentricity = 0;
+  graph.forEachVertexKey([&](K v) {
+    if (distanceFromU[v] != numeric_limits<int>::max()){
+      eccentricity = max(eccentricity, distanceFromU[v]);
+    }
+  });
+  return eccentricity;
 }
 
 template <class K, class V, class E>
@@ -598,7 +604,9 @@ vector<set<K>> computeF(const DiGraph<K, V, E>& graph, K u) {
   int eccentricity = computeEccentricity(graph, u);
   vector<set<K>> F(eccentricity + 1);
   graph.forEachVertexKey([&](K v) {
-    F[distanceFromU[v]].insert(v);
+    if (distanceFromU[v] != numeric_limits<int>::max()){
+      F[distanceFromU[v]].insert(v);
+    }
   });
   return F;
 }
@@ -633,14 +641,18 @@ int iFUB(const DiGraph<K, V, E>& graph, K u, int l, int k) {
 }
 
 template <class K, class V, class E>
-K getVertexWithMaximumDegree(const DiGraph<K, V, E>& graph) {
+K getVertexWithMaximumDegree(const DiGraph<K, V, E>& graph, K component, vector<bool>& visited) {
+  vector<int> distanceFromU = getDistanceFromU(graph, component);
   K maxDegreeVertex = 0;
   int maxDegree = 0;
   graph.forEachVertexKey([&](K v) {
     int degree = graph.degree(v);
-    if (degree > maxDegree) {
-      maxDegreeVertex = v;
-      maxDegree = degree;
+    if (distanceFromU[v] != numeric_limits<int>::max()){
+      visited[v] = true;
+      if (degree > maxDegree) {
+        maxDegreeVertex = v;
+        maxDegree = degree;
+      }
     }
   });
   return maxDegreeVertex;
@@ -652,7 +664,7 @@ K maxDistantVertex(const DiGraph<K, V, E>& graph, K u) {
   K maxDistantVertex = u;
   E maxDistance = distanceFromU[maxDistantVertex];
   graph.forEachVertexKey([&](K v) {
-    if (distanceFromU[v] > maxDistance) {
+    if ((distanceFromU[v] != numeric_limits<int>::max()) && (distanceFromU[v] > maxDistance)) {
       maxDistantVertex = v;
       maxDistance = distanceFromU[v];
     }
@@ -694,8 +706,8 @@ K midVertex(const DiGraph<K, V, E>& graph, K u, K v) {
 }
 
 template <class K, class V, class E>
-pair<E, K> fourSweep(const DiGraph<K, V, E>& graph) {
-  K r1 = getVertexWithMaximumDegree(graph);
+pair<E, K> fourSweep(const DiGraph<K, V, E>& graph, K component, vector<bool>& visited) {
+  K r1 = getVertexWithMaximumDegree(graph, component, visited);
   K a1 = maxDistantVertex(graph, r1);
   K b1 = maxDistantVertex(graph, a1);
   K r2 = midVertex(graph, a1, b1);
@@ -710,32 +722,15 @@ template <class K, class V, class E>
 int getDiameter(const DiGraph<K, V, E>& graph) {
   auto sym_graph = symmetrize(graph);
   vector<bool> visited(sym_graph.order()+1, false);
-  queue<K> BFSQueue;
-  K start;
+  int maxDiameter = 0;
   sym_graph.forEachVertexKey([&](K v) {
-    start = v;
+    if (!visited[v]) {
+      pair<E, K> p = fourSweep(sym_graph, v, visited);
+      int componentDiameter = iFUB(sym_graph, p.second, p.first, 0);
+      maxDiameter = max(maxDiameter, componentDiameter);
+    }
   });
-  visited[start] = true;
-  BFSQueue.push(start);
-  while (!BFSQueue.empty()) {
-    K top = BFSQueue.front();
-    BFSQueue.pop();
-    sym_graph.forEachEdgeKey(top, [&](K neighbor) {
-      if (!visited[neighbor]) {
-        visited[neighbor] = true;
-        BFSQueue.push(neighbor);
-      }
-    });
-  }
-  int flg=1;
-  sym_graph.forEachVertexKey([&](K v) {
-    if(!visited[v]) {flg=0;}
-  });
-  if(flg==0) {
-    return -1;
-  }
-  pair<E, K> p = fourSweep(sym_graph);
-  return iFUB(sym_graph, p.second, p.first, 0);
+  return maxDiameter;
 }
 
 #pragma endregion
