@@ -121,6 +121,8 @@ inline Options readOptions(int argc, char **argv) {
     else if (k=="--max-diameter")  o.params["max-diameter"]  = argv[++i];
     else if (k=="--min-scc")       o.params["min-scc"]       = argv[++i];
     else if (k=="--max-scc")       o.params["max-scc"]       = argv[++i];
+    else if (k=="--min-bcc")       o.params["min-bcc"]       = argv[++i];
+    else if (k=="--max-bcc")       o.params["max-bcc"]       = argv[++i];
     else if (k=="--preserve-degree-distribution") o.params["preserve-degree-distribution"] = "1";
     else if (k=="--preserve-communities")         o.params["preserve-communities"] = "1";
     else if (k=="--preserve-k-core")              o.params["preserve-k-core"] = argv[++i];
@@ -189,6 +191,8 @@ inline const char* helpMessage() {
   "  --max-diameter <diameter>        Ensure the diameter of the graph does not exceed the specified value.\n"
   "  --min-scc <scc>                  Ensure the number of strongly connected components does not fall below the specified value.\n"
   "  --max-scc <scc>                  Ensure the number of strongly connected components does not exceed the specified value.\n"
+  "  --min-bcc <bcc>                  Ensure the number of bi connected components does not fall below the specified value.\n"
+  "  --max-bcc <bcc>                  Ensure the number of bi connected components does not exceed the specified value.\n"
   "  --preserve-degree-distribution   Ensure the degree distribution is maintained.\n"
   "  --preserve-communities           Preserve community structures.\n"
   "  --preserve-k-core <k>            Ensure the graph maintains a k-core structure.\n"
