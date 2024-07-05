@@ -3,6 +3,7 @@
 #include <vector>
 #include <ostream>
 #include <algorithm>
+#include <stack>
 #include "_main.hxx"
 
 using std::pair;
@@ -386,6 +387,71 @@ class DiGraph {
     edges[u].clear();
   }
   #pragma endregion
+
+  #pragma region BCC
+  protected:
+  mutable std::vector<int> disc, low, parent;
+  mutable std::stack<K> st;
+  mutable std::vector<bool> stackMember;
+  mutable std::vector<std::vector<K>> biconnectedComponents;
+  mutable int time;
+
+  void BCCUtil(K u) const {
+    static int NIL = -1;
+    disc[u] = low[u] = ++time;
+    stackMember[u] = true;
+    st.push(u);
+
+    forEachEdgeKey(u, [&](K v) {
+      if (disc[v] == -1) {
+        parent[v] = u;
+        BCCUtil(v);
+
+        low[u] = std::min(low[u], low[v]);
+
+        if (low[v] >= disc[u]) {
+          std::vector<K> component;
+          while (st.top() != v) {
+            K w = st.top();
+            component.push_back(w);
+            stackMember[w] = false;
+            st.pop();
+          }
+          K w = st.top();
+          component.push_back(w);
+          stackMember[w] = false;
+          st.pop();
+
+          component.push_back(u);
+          biconnectedComponents.push_back(component);
+        }
+      }
+      else if (v != parent[u] && stackMember[v]) {
+        low[u] = std::min(low[u], disc[v]);
+      }
+    });
+  }
+
+  public:
+  std::vector<std::vector<K>> findBCCs() const {
+    disc.resize(span(), -1);
+    low.resize(span(), -1);
+    parent.resize(span(), -1);
+    stackMember.resize(span(), false);
+    time = 0;
+    biconnectedComponents.clear();
+
+    forEachVertexKey([&](K u) {
+      if (disc[u] == -1) {
+        BCCUtil(u);
+      }
+    });
+
+    return biconnectedComponents;
+  }
+  #pragma endregion
+
+  
   #pragma endregion
 };
 
