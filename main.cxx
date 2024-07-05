@@ -336,7 +336,16 @@ void handleOptions(const Options& options) {
     } catch (const invalid_argument& e) {
         cerr << "Error: " << e.what() << endl;
     }
-    if(propertiesFile != "") writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter), divergence, constraints);
+    if(propertiesFile != "")
+    { 
+      string outputFileName = outputDir + outputPrefix + "_" + to_string(counter);
+      std::string pythonScript = "scripts/svd.py";
+      string plot_filename = propertiesFile + outputPrefix + "_" + to_string(counter) + "_svplot";
+      string command = "python3 " + pythonScript + " " + outputFileName + " " + plot_filename;
+      int result = system(command.c_str());
+
+      writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter), divergence, constraints);
+    }
   }
 }
 #pragma endregion

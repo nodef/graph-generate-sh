@@ -2,6 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import svds
+import sys
 
 def read_graph(filename):
     with open(filename, 'r') as file:
@@ -21,21 +22,21 @@ def perform_svd(adj_matrix, k):
     u, s, vt = svds(adj_matrix, k=k)
     return s
 
-def plot_singular_values(singular_values):
+def plot_singular_values(singular_values,mainname):
     plt.figure(figsize=(10, 6))
     plt.scatter(range(1, len(singular_values) + 1), sorted(singular_values, reverse=True))
     plt.xlabel('Index')
     plt.ylabel('Singular Value')
     plt.title('Singular Values of the Adjacency Matrix')
     plt.grid(True)
-    # plt.show()
-    plt.savefig()
 
-def main():
-    filename = 'output/custom_1'
-    adj_matrix,n = read_graph(filename)
+    plt.savefig(mainname)
+
+def main(args):
+    filename = args
+    adj_matrix,n = read_graph(filename[0])
     singular_values = perform_svd(adj_matrix,100)
-    plot_singular_values(singular_values)
+    plot_singular_values(singular_values,args[1])
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
