@@ -430,6 +430,7 @@ void handleOptions(const Options &options)
       int result = system(command.c_str());
 
       writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter), divergence, constraints);
+      printf("Write batch %d propertirs: %.3f seconds\n", counter, duration(startTime) / 1000.0);
     }
   }
 }
