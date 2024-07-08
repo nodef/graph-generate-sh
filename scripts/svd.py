@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from scipy.sparse.linalg import svds
 import sys
 
-
 def create_folder_if_not_exists(folder_path):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
@@ -20,21 +19,22 @@ def read_graph(filename):
     
     for line in lines[1:]:
         node1, node2, wt = map(int, line.split())
-        adj_matrix[node1-1, node2-1] = wt  
+        adj_matrix[node1-1, node2-1] = wt+1  
     
-    return adj_matrix,n
+    return adj_matrix, n
 
 def perform_svd(adj_matrix, k):
     u, s, vt = svds(adj_matrix, k=k)
     return s, u, vt
 
 def plot_singular_values(singular_values, adj_matrix, mainname):
-    # norm = np.linalg.norm(adj_matrix)
-    # min_svd = np.min(singular_values)
-    # cond = np.linalg.cond(adj_matrix.toarray())
-    # rank = np.linalg.matrix_rank(adj_matrix.toarray())
-    # null_space_dim = adj_matrix.shape[0] - rank
-    # full_rank = rank == min(adj_matrix.shape)
+    adj_matrix_dense = adj_matrix.toarray() 
+    norm = np.linalg.norm(adj_matrix_dense)
+    min_svd = np.min(singular_values)
+    cond = np.linalg.cond(adj_matrix_dense)
+    rank = np.linalg.matrix_rank(adj_matrix_dense)
+    null_space_dim = adj_matrix.shape[0] - rank
+    full_rank = rank == min(adj_matrix.shape)
 
     plt.figure(figsize=(10, 6))
     plt.scatter(range(1, len(singular_values) + 1), sorted(singular_values, reverse=True))
@@ -43,8 +43,6 @@ def plot_singular_values(singular_values, adj_matrix, mainname):
 
     dirname = mainname.split('/')
     root = ""
-    # print(mainname)
-    # print(dirname)
     for i in range(len(dirname) - 1):
         root += dirname[i]
         root += "/"
@@ -52,11 +50,20 @@ def plot_singular_values(singular_values, adj_matrix, mainname):
     create_folder_if_not_exists(root)
     root += dirname[-1]
 
-    # plt.title(f'Singular Values of the Adjacency Matrix\n'
-    #           f'Norm: {norm:.2e}, Min SVD: {min_svd:.2e}, Cond: {cond:.2e}, '
-    #           f'Rank: {rank}, Null Space Dim: {null_space_dim}, Full Rank: {full_rank}')
+    textstr = (f'Norm: {norm:.2e}\n'
+               f'Min SVD: {min_svd:.2e}\n'
+               f'Cond: {cond:.2e}\n'
+               f'Rank: {rank}\n'
+               f'Null Space Dim: {null_space_dim}\n'
+               f'Full Rank: {full_rank}')
+
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+
+    plt.gca().text(0.95, 0.95, textstr, transform=plt.gca().transAxes, fontsize=10,
+                   verticalalignment='top', horizontalalignment='right', bbox=props)
+
+    plt.title('Singular Values of the Adjacency Matrix')
     plt.grid(True)
-    # print(root)
     plt.savefig(root)
 
 def main(args):
