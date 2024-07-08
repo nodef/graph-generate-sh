@@ -69,7 +69,8 @@ def plot_singular_values(singular_values, adj_matrix, mainname):
 def main(args):
     filename = args
     adj_matrix, n = read_graph(filename[0])
-    singular_values, u, vt = perform_svd(adj_matrix, 10)
+    k = min(n - 1, 100)  
+    singular_values, u, vt = perform_svd(adj_matrix, k)
     plot_singular_values(singular_values, adj_matrix, args[1])
 
 if __name__ == "__main__":
