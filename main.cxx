@@ -303,6 +303,7 @@ void writeGraphPropertiesToJSON(const G &graph, const string &filename, double d
     } });
   file << "]," << endl;
   file << "    \"scc\": " << scc << "," << endl;
+  file << "    \"bcc\": " << bcc << "," << endl;
   file << "    \"adjacencyMatrix\": [" << endl;
   for (size_t i = 0; i < order; ++i)
   {
@@ -391,7 +392,7 @@ void handleOptions(const Options &options)
   handleInputFormat(inputFormat, graph, inputGraph);
   printf("Read graph: %.3f seconds\n", duration(startTime) / 1000.0);
   if (propertiesFile != "")
-    writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(0), 1e9, constraints);
+  writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(0), 1e9, constraints);
   for (int i = 0; i < inputTransform.size(); i++)
   {
     handleInputTransform(inputTransform[i], graph);
@@ -425,7 +426,7 @@ void handleOptions(const Options &options)
     {
       string outputFileName = outputDir + outputPrefix + "_" + to_string(counter);
       std::string pythonScript = "scripts/svd.py";
-      string plot_filename = propertiesFile + outputPrefix + "_" + to_string(counter) + "_svplot";
+      string plot_filename = propertiesFile + "svd_statistics" + "_" + to_string(counter);
       string command = "python3 " + pythonScript + " " + outputFileName + " " + plot_filename;
       int result = system(command.c_str());
 
