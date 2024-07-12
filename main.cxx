@@ -182,6 +182,17 @@ void createOutputFile(const string &outputDir, const string &outputPrefix, int &
   }
 }
 
+std::string exec(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
 /**
  * Write a graph in the edge list format to an output file.
  * @tparam K The vertex ID type.
@@ -259,7 +270,7 @@ void handleUpdateNature(const string &probabilityDistribution, const string &upd
 }
 
 template <class G>
-void writeGraphPropertiesToJSON(const G &graph, const string &filename, double divergence_list, map<string, int> &constraints)
+void writeGraphPropertiesToJSON(const G &graph, const string &filename, double divergence_list, map<string, int> &constraints, int bcc)
 {
   int satisfyConstraints = 1;
   auto order = graph.order();
@@ -277,8 +288,8 @@ void writeGraphPropertiesToJSON(const G &graph, const string &filename, double d
   auto avg_degree = sum_degrees / order;
   auto scc = tarjanSCC(graph);
   auto diameter = getDiameter(graph);
-  auto bccs = graph.findBCCs();
-  int bcc = bccs.size();
+  // auto bccs = bcc;
+  // int bcc = bccs.size();
   if (diameter < constraints["minDiameter"] || diameter > constraints["maxDiameter"] || min_degree < constraints["minDegree"] || max_degree > constraints["maxDegree"] || scc < constraints["minSCC"] || scc > constraints["maxSCC"] || bcc < constraints["minBCC"] || bcc > constraints["maxBCC"])
     satisfyConstraints = 0;
   ofstream file(filename);
@@ -392,7 +403,7 @@ void handleOptions(const Options &options)
   handleInputFormat(inputFormat, graph, inputGraph);
   printf("Read graph: %.3f seconds\n", duration(startTime) / 1000.0);
   if (propertiesFile != "")
-  writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(0), 1e9, constraints);
+  writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(0), 1e9, constraints,1);
   for (int i = 0; i < inputTransform.size(); i++)
   {
     handleInputTransform(inputTransform[i], graph);
@@ -428,9 +439,11 @@ void handleOptions(const Options &options)
       std::string pythonScript = "scripts/svd.py";
       string plot_filename = propertiesFile + "svd_statistics" + "_" + to_string(counter);
       string command = "python3 " + pythonScript + " " + outputFileName + " " + plot_filename;
-      int result = system(command.c_str());
+      std::string output = exec(command.c_str());
+      int bcc_count = std::stoi(output);
 
-      writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter), divergence, constraints);
+
+      writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter), divergence, constraints,bcc_count);
       printf("Write batch %d propertirs: %.3f seconds\n", counter, duration(startTime) / 1000.0);
     }
   }
