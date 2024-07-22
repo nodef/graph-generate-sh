@@ -288,8 +288,6 @@ void writeGraphPropertiesToJSON(const G &graph, const string &filename, double d
   auto avg_degree = sum_degrees / order;
   auto scc = tarjanSCC(graph);
   auto diameter = getDiameter(graph);
-  // auto bccs = bcc;
-  // int bcc = bccs.size();
   if (diameter < constraints["minDiameter"] || diameter > constraints["maxDiameter"] || min_degree < constraints["minDegree"] || max_degree > constraints["maxDegree"] || scc < constraints["minSCC"] || scc > constraints["maxSCC"] || bcc < constraints["minBCC"] || bcc > constraints["maxBCC"])
     satisfyConstraints = 0;
   ofstream file(filename);
@@ -403,7 +401,20 @@ void handleOptions(const Options &options)
   handleInputFormat(inputFormat, graph, inputGraph);
   printf("Read graph: %.3f seconds\n", duration(startTime) / 1000.0);
   if (propertiesFile != "")
-  writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(0), 1e9, constraints,1);
+  {
+    int dup_cnter=0;
+    createOutputFile(outputDir, outputPrefix, dup_cnter, outputFile);
+    writeOutput(outputFile, graph);
+    string outputFileName = outputDir + outputPrefix + "_" + to_string(counter);
+    std::string pythonScript = "scripts/svd.py";
+    string plot_filename = propertiesFile + "svd_statistics" + "_" + to_string(counter);
+    string command = "python3 " + pythonScript + " " + outputFileName + " " + plot_filename;
+    std::string output = exec(command.c_str());
+    int bcc_count = std::stoi(output);
+
+
+    writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(0), 1e9, constraints,bcc_count);
+  }
   for (int i = 0; i < inputTransform.size(); i++)
   {
     handleInputTransform(inputTransform[i], graph);
@@ -441,8 +452,6 @@ void handleOptions(const Options &options)
       string command = "python3 " + pythonScript + " " + outputFileName + " " + plot_filename;
       std::string output = exec(command.c_str());
       int bcc_count = std::stoi(output);
-
-
       writeGraphPropertiesToJSON(graph, propertiesFile + outputPrefix + "_" + to_string(counter), divergence, constraints,bcc_count);
       printf("Write batch %d propertirs: %.3f seconds\n", counter, duration(startTime) / 1000.0);
     }
