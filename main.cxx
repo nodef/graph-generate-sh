@@ -237,36 +237,61 @@ void writeOutput(ofstream &outputFile, const DiGraph<int, int, int> &graph)
  * @param weights The weights according to the given distribution must be filled in here.
  * @param allowDuplicateEdges Allow duplicate edges in the batch update.
  * @param graphType The type of the graph (directed, undirected).
+ * @param minDiameter The minimum diameter constraint.
+ * @param maxDiameter The maximum diameter constraint.
  * @throws runtime_error if the update nature is unknown.
  */
-void handleUpdateNature(const string &probabilityDistribution, const string &updateNature, DiGraph<int, int, int> &graph, mt19937_64 &rng, size_t batchSize, double edgeDeletions, double edgeInsertions, bool allowDuplicateEdges = true, const string &graphType = "directed")
+void handleUpdateNature(const string &probabilityDistribution, const string &updateNature, DiGraph<int, int, int> &graph, mt19937_64 &rng, size_t batchSize, double edgeDeletions, double edgeInsertions, bool allowDuplicateEdges = true, const string &graphType = "directed", int minDiameter = 0, int maxDiameter = INT_MAX)
 {
+  int retries = 3;
+  bool batchSuccess = false;
+  DiGraph<int, int, int> graphCopy;
   vector<tuple<int, int, int>> insertions, deletions;
-  if (updateNature == "")
+  while (retries--)
   {
-    customUpdate(probabilityDistribution, rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
+    // std::cout << "Retry count: " << retries << std::endl;
+    graphCopy = graph;
+    insertions.clear();
+    deletions.clear();
+
+    if (updateNature == "")
+    {
+      customUpdate(probabilityDistribution, rng, graphCopy, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
+    }
+    else if (updateNature == "uniform")
+    {
+      uniformUpdate(rng, graphCopy, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
+    }
+    else if (updateNature == "preferential")
+    {
+      preferentialUpdate(rng, graphCopy, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
+    }
+    else if (updateNature == "planted")
+    {
+      // Handle planted update
+    }
+    else if (updateNature == "match")
+    {
+      // Handle match update
+    }
+    else
+    {
+      throw runtime_error("Unknown update nature: " + updateNature);
+    }
+    applyBatchUpdateU(graphCopy, deletions, insertions, graphType);
+    int diameter = getDiameter(graphCopy);
+    if (diameter >= minDiameter && diameter <= maxDiameter)
+    {
+      graph = graphCopy;
+      batchSuccess = true;
+      break;
+    }
   }
-  else if (updateNature == "uniform")
+
+  if (!batchSuccess)
   {
-    uniformUpdate(rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
+    applyBatchUpdateU(graph, deletions, insertions, graphType);
   }
-  else if (updateNature == "preferential")
-  {
-    preferentialUpdate(rng, graph, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
-  }
-  else if (updateNature == "planted")
-  {
-    // Handle planted update
-  }
-  else if (updateNature == "match")
-  {
-    // Handle match update
-  }
-  else
-  {
-    throw runtime_error("Unknown update nature: " + updateNature);
-  }
-  applyBatchUpdateU(graph, deletions, insertions, graphType);
 }
 
 template <class G>
@@ -427,7 +452,7 @@ void handleOptions(const Options &options)
   {
     if (batchSize == 0)
       batchSize = graph.size() * batchSizeRatio;
-    handleUpdateNature(probabilityDistribution, updateNature, graph, rng, batchSize, edgeDeletions, edgeInsertions, allowDuplicateEdges, graphType);
+    handleUpdateNature(probabilityDistribution, updateNature, graph, rng, batchSize, edgeDeletions, edgeInsertions, allowDuplicateEdges, graphType, minDiameter, maxDiameter);
     map<size_t, size_t> inDegreeDistribution;
     calculateInDegreeDistribution<DiGraph<int, int, int>, int>(graph, inDegreeDistribution);
     vector<double> normalised_weights_real = degreeDistributionToProbability(inDegreeDistribution);
