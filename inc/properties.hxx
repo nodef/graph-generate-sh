@@ -430,6 +430,59 @@ inline double density(const G& x) {
 }
 #pragma endregion
 
+#pragma region CLOSENESS CENTRALITY 
+
+/**
+ * Calculate the closeness centrality for each vertex in the graph using BFS.
+ * @param graph Input graph of type DiGraph.
+ * @return A vector containing closeness centralities for each vertex.
+ */
+template <class K, class V, class E>
+vector<double> closenessCentrality(const DiGraph<K, V, E>& graph) {
+    size_t n = graph.span(); 
+    vector<double> closenessCentrality(n, 0.0); 
+    constexpr E INF = std::numeric_limits<E>::max(); 
+
+    graph.forEachVertexKey([&](K source) {
+        vector<E> distance(n, INF);
+        distance[source] = 0;
+
+        std::queue<K> q;
+        q.push(source);
+
+        while (!q.empty()) {
+            K u = q.front();
+            q.pop();
+
+            graph.forEachEdgeKey(u, [&](K v) {
+                if (distance[v] == INF) {
+                    distance[v] = distance[u] + 1;
+                    q.push(v);
+                }
+            });
+        }
+
+        double sumDistances = 0;
+        int reachableNodes = 0;
+        for (size_t i = 0; i < n; ++i) {
+            if (i != source && distance[i] != INF) {
+                sumDistances += distance[i];
+                reachableNodes++;
+            }
+        }
+
+        if (reachableNodes > 0) {
+            closenessCentrality[source] = (reachableNodes > 0) ? (reachableNodes / sumDistances) : 0.0;
+        }
+    });
+
+    return closenessCentrality;
+}
+
+#pragma endregion
+
+
+
 #pragma region DEGREE DISTRIBUTION
 /**
  * Find the out-degree distribution of a graph.
