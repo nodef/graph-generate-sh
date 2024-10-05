@@ -418,6 +418,9 @@ void handleOptions(const Options &options)
   constraints["maxSCC"] = maxSCC;
   constraints["minBCC"] = minBCC;
   constraints["maxBCC"] = maxBCC;
+  if(edgeInsertions > 0.0) edgeDeletions = 1 - edgeInsertions;
+  else if(edgeDeletions > 0.0) edgeInsertions = 1 - edgeDeletions;
+  std::cout << edgeDeletions << " " << edgeInsertions << std::endl;
   DiGraph<int, int, int> graph;
   int counter = 0;
   ofstream outputFile;

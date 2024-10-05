@@ -565,15 +565,17 @@ double KLDivergence(const std::vector<double>& P, const std::vector<double>& Q) 
     size_t maxSize = std::max(P.size(), Q.size());
     double divergence = 0.0;
 
-    for (size_t i = 0; i < maxSize; ++i) {
+    for (size_t i = 1; i < maxSize; ++i) {
         double pVal = (i < P.size()) ? P[i] : 0.0;
         double qVal = (i < Q.size()) ? Q[i] : 0.0;
 
         if (pVal != 0) {
             if (qVal == 0) {
-                throw std::invalid_argument("Q[i] must be non-zero where P[i] is non-zero.");
             }
-            divergence += pVal *log(pVal*1.0 / qVal);
+            else{
+              divergence += pVal *log(pVal*1.0 / qVal);
+            }
+            
         }
     }
     return divergence;
@@ -605,10 +607,11 @@ std::vector<double> degreeDistributionToProbability(const std::map<size_t, size_
     std::vector<double> probabilities;
     size_t totalVertices = 0;
     for (const auto& pair : distribution) {
-        totalVertices += pair.second;
+        totalVertices += (pair.second == 0) ? 1 : pair.second; 
     }
     for (const auto& pair : distribution) {
-        probabilities.push_back(static_cast<double>(pair.second) / totalVertices);
+        size_t adjustedCount = (pair.second == 0.0) ? 1 : pair.second; 
+        probabilities.push_back(static_cast<double>(adjustedCount) / totalVertices);
     }
     return probabilities;
 }
