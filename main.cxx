@@ -266,6 +266,11 @@ void handleUpdateNature(const string &probabilityDistribution, const string &upd
     {
       preferentialUpdate(rng, graphCopy, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
     }
+    else if (updateNature == "exponential")
+    {
+      string distributionString = "0.01*exp(-0.01*x)";
+      customUpdate(distributionString, rng, graphCopy, batchSize, edgeInsertions, edgeDeletions, insertions, deletions, allowDuplicateEdges);
+    }
     else if (updateNature == "planted")
     {
       // Handle planted update
@@ -420,7 +425,7 @@ void handleOptions(const Options &options)
   constraints["maxBCC"] = maxBCC;
   if(edgeInsertions > 0.0) edgeDeletions = 1 - edgeInsertions;
   else if(edgeDeletions > 0.0) edgeInsertions = 1 - edgeDeletions;
-  std::cout << edgeDeletions << " " << edgeInsertions << std::endl;
+  // std::cout << edgeDeletions << " " << edgeInsertions << std::endl;
   DiGraph<int, int, int> graph;
   int counter = 0;
   ofstream outputFile;
