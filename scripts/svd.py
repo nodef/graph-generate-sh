@@ -4,6 +4,7 @@ import os
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import svds
 import sys
+from random import random
 
 def create_folder_if_not_exists(folder_path):
     if not os.path.exists(folder_path):
@@ -110,13 +111,33 @@ def find_bcc_count(adj_matrix, n):
 
     return bcc_count
 
+def approximate_bcc_count(adj_matrix, n, num_walks=1000, walk_length=50):
+    visited_edges = set()  
+    bcc_approx_count = 0   
+
+    for _ in range(num_walks):
+        current_node = random.randint(0, n - 1)  
+        for _ in range(walk_length):
+            neighbors = adj_matrix[current_node].nonzero()[1]
+            if len(neighbors) == 0:
+                break  
+            next_node = random.choice(neighbors)
+            edge = tuple(sorted([current_node, next_node]))
+            if edge not in visited_edges:
+                visited_edges.add(edge)
+                bcc_approx_count += 1  
+            current_node = next_node
+    
+    return bcc_approx_count
+
+
 def main(args):
     filename = args
     adj_matrix, n = read_graph(filename[0])
     k = min(n - 1, 100)  
     singular_values, u, vt = perform_svd(adj_matrix, k)
     plot_singular_values(singular_values, adj_matrix, args[1])
-    bcc_count = find_bcc_count(adj_matrix, n)
+    bcc_count = approximate_bcc_count(adj_matrix, n)
     print(bcc_count)
 
 
