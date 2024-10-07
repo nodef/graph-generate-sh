@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from scipy.sparse.linalg import svds
 import sys
 from random import random
+from sklearn.utils.extmath import randomized_svd
+
 
 def create_folder_if_not_exists(folder_path):
     if not os.path.exists(folder_path):
@@ -26,6 +28,10 @@ def read_graph(filename):
 
 def perform_svd(adj_matrix, k):
     u, s, vt = svds(adj_matrix, k=k)
+    return s, u, vt
+
+def perform_approx_svd(adj_matrix, k):
+    u, s, vt = randomized_svd(adj_matrix, n_components=k, n_iter=5, random_state=None)
     return s, u, vt
 
 def plot_singular_values(singular_values, adj_matrix, mainname):
@@ -135,7 +141,10 @@ def main(args):
     filename = args
     adj_matrix, n = read_graph(filename[0])
     k = min(n - 1, 100)  
-    singular_values, u, vt = perform_svd(adj_matrix, k)
+    # singular_values, u, vt = perform_svd(adj_matrix, k)
+    singular_values, u, vt = perform_approx_svd(adj_matrix, k)
+
+
     plot_singular_values(singular_values, adj_matrix, args[1])
     bcc_count = approximate_bcc_count(adj_matrix, n)
     print(bcc_count)
