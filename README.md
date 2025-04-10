@@ -33,3 +33,5 @@ $ ./a.out delta ~/data/web-Google.mtx --samples 10000 --output web-Google.delta
 # Generate 5 graph deltas and write to file web-Google(+/-).delta.
 $ ./a.out delta ~/data/web-Google.mtx --samples 10000 --count 5 --output web-Google.delta
 ```
+
+![](https://ga-beacon.deno.dev/G-RC63DPBH3P:SH3Eq-NoQ9mwgYeHWxu7cw/github.com/nodef/graph-generate-sh)
